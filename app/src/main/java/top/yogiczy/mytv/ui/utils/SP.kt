@@ -10,6 +10,7 @@ import top.yogiczy.mytv.data.utils.Constants
 object SP {
     private const val SP_NAME = "mytv"
     private const val SP_MODE = Context.MODE_PRIVATE
+    private const val LEGACY_DEFAULT_IPTV_SOURCE_URL = "http://1.2.3.4/live.m3u"
     private lateinit var sp: SharedPreferences
 
     fun getInstance(context: Context): SharedPreferences =
@@ -163,8 +164,13 @@ object SP {
 
     /** 直播源 url */
     var iptvSourceUrl: String
-        get() = (sp.getString(KEY.IPTV_SOURCE_URL.name, "")
-            ?: "").ifBlank { Constants.IPTV_SOURCE_URL }
+        get() {
+            val sourceUrl = sp.getString(KEY.IPTV_SOURCE_URL.name, "") ?: ""
+            return sourceUrl
+                .takeUnless { it == LEGACY_DEFAULT_IPTV_SOURCE_URL }
+                ?.ifBlank { Constants.IPTV_SOURCE_URL }
+                ?: Constants.IPTV_SOURCE_URL
+        }
         set(value) = sp.edit().putString(KEY.IPTV_SOURCE_URL.name, value).apply()
 
     /** 直播源缓存时间（毫秒） */
@@ -179,7 +185,9 @@ object SP {
 
     /** 直播源历史列表 */
     var iptvSourceUrlHistoryList: Set<String>
-        get() = sp.getStringSet(KEY.IPTV_SOURCE_URL_HISTORY_LIST.name, emptySet()) ?: emptySet()
+        get() = (sp.getStringSet(KEY.IPTV_SOURCE_URL_HISTORY_LIST.name, emptySet())
+            ?: emptySet()).filter { it.isNotBlank() && it != LEGACY_DEFAULT_IPTV_SOURCE_URL }
+            .toSet()
         set(value) = sp.edit().putStringSet(KEY.IPTV_SOURCE_URL_HISTORY_LIST.name, value).apply()
 
     /** 是否启用数字选台 */

@@ -174,7 +174,8 @@ private fun LeanbackSettingsIptvSourceHistoryDialog(
     onSelected: (String) -> Unit = {},
     onDeleted: (String) -> Unit = {},
 ) {
-    val iptvSourceHistory = listOf(Constants.IPTV_SOURCE_URL) + iptvSourceHistoryProvider()
+    val defaultIptvSource = Constants.IPTV_SOURCE_URL.takeIf { it.isNotBlank() }
+    val iptvSourceHistory = listOfNotNull(defaultIptvSource) + iptvSourceHistoryProvider()
     val currentIptvSource = currentIptvSourceProvider()
 
     if (showDialogProvider()) {

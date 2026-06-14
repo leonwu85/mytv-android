@@ -56,6 +56,10 @@ class IptvRepository : FileCacheRepository("iptv.txt") {
         cacheTime: Long,
         simplify: Boolean = false,
     ): IptvGroupList {
+        if (sourceUrl.isBlank()) {
+            throw Exception("IPTV source URL is empty")
+        }
+
         try {
             val sourceData = getOrRefresh(cacheTime) {
                 fetchSource(sourceUrl)

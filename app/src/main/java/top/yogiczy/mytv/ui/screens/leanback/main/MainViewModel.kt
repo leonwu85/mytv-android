@@ -36,10 +36,16 @@ class LeanbackMainViewModel : ViewModel() {
     }
 
     private suspend fun refreshIptv() {
+        val sourceUrl = SP.iptvSourceUrl
+        if (sourceUrl.isBlank()) {
+            _uiState.value = LeanbackMainUiState.Error("未配置直播源，请扫码打开配置页面设置自定义直播源")
+            return
+        }
+
         flow {
             emit(
                 iptvRepository.getIptvGroupList(
-                    sourceUrl = SP.iptvSourceUrl,
+                    sourceUrl = sourceUrl,
                     cacheTime = SP.iptvSourceCacheTime,
                     simplify = SP.iptvSourceSimplify,
                 )
@@ -55,11 +61,11 @@ class LeanbackMainViewModel : ViewModel() {
             }
             .catch {
                 _uiState.value = LeanbackMainUiState.Error(it.message)
-                SP.iptvSourceUrlHistoryList -= SP.iptvSourceUrl
+                SP.iptvSourceUrlHistoryList -= sourceUrl
             }
             .map {
                 _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = it)
-                SP.iptvSourceUrlHistoryList += SP.iptvSourceUrl
+                SP.iptvSourceUrlHistoryList += sourceUrl
                 it
             }
             .collect()

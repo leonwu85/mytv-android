@@ -59,7 +59,9 @@ class LeanbackMedia3VideoPlayer(
 
         val mediaSource = when (val type = contentType ?: Util.inferContentType(uri)) {
             C.CONTENT_TYPE_HLS -> {
-                HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+                HlsMediaSource.Factory(dataSourceFactory)
+                    .setExtractorFactory(Av3aHlsExtractorFactory())
+                    .createMediaSource(mediaItem)
             }
 
             C.CONTENT_TYPE_RTSP -> {
@@ -67,7 +69,8 @@ class LeanbackMedia3VideoPlayer(
             }
 
             C.CONTENT_TYPE_OTHER -> {
-                ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+                ProgressiveMediaSource.Factory(dataSourceFactory, Av3aExtractorsFactory())
+                    .createMediaSource(mediaItem)
             }
 
             else -> {
