@@ -13,6 +13,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
@@ -43,6 +44,7 @@ class LeanbackMedia3VideoPlayer(
 
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var updatePositionJob: Job? = null
+    private var httpStatusRetryCount = 0
 
     @OptIn(UnstableApi::class)
     private fun prepare(uri: Uri, contentType: Int? = null) {
@@ -118,10 +120,12 @@ class LeanbackMedia3VideoPlayer(
                         triggerError(PlaybackException.UNSUPPORTED_TYPE)
                     }
                 }
+            } else if (ex.errorCode == Media3PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS &&
+                retryCurrentMediaItem(ex)
+            ) {
+                return
             } else {
-                triggerError(
-                    PlaybackException(ex.errorCodeName, ex.errorCode)
-                )
+                triggerError(ex.toPlaybackException())
             }
         }
 
@@ -130,6 +134,7 @@ class LeanbackMedia3VideoPlayer(
                 triggerError(null)
                 triggerBuffering(true)
             } else if (playbackState == Player.STATE_READY) {
+                httpStatusRetryCount = 0
                 triggerReady()
 
                 updatePositionJob?.cancel()
@@ -220,6 +225,7 @@ class LeanbackMedia3VideoPlayer(
     @UnstableApi
     override fun prepare(url: String) {
         contentTypeAttempts.clear()
+        httpStatusRetryCount = 0
         prepare(Uri.parse(url))
     }
 
@@ -233,5 +239,44 @@ class LeanbackMedia3VideoPlayer(
 
     override fun setVideoSurfaceView(surfaceView: SurfaceView) {
         videoPlayer.setVideoSurfaceView(surfaceView)
+    }
+
+    private fun retryCurrentMediaItem(ex: Media3PlaybackException): Boolean {
+        val uri = videoPlayer.currentMediaItem?.localConfiguration?.uri ?: return false
+        if (httpStatusRetryCount >= HTTP_STATUS_RETRY_LIMIT) return false
+
+        httpStatusRetryCount++
+        log.w(
+            "HTTP状态异常，重新拉取播放地址($httpStatusRetryCount/$HTTP_STATUS_RETRY_LIMIT): " +
+                "${ex.toPlaybackException().errorCodeName} $uri",
+            ex,
+        )
+
+        updatePositionJob?.cancel()
+        updatePositionJob = null
+        coroutineScope.launch {
+            delay(500)
+            prepare(uri)
+        }
+        return true
+    }
+
+    private fun Media3PlaybackException.toPlaybackException(): PlaybackException {
+        val responseCode = findInvalidResponseCodeException()?.responseCode
+        val name = if (responseCode != null) "${errorCodeName}_$responseCode" else errorCodeName
+        return PlaybackException(name, errorCode)
+    }
+
+    private fun Throwable.findInvalidResponseCodeException(): HttpDataSource.InvalidResponseCodeException? {
+        var current: Throwable? = this
+        while (current != null) {
+            if (current is HttpDataSource.InvalidResponseCodeException) return current
+            current = current.cause
+        }
+        return null
+    }
+
+    private companion object {
+        const val HTTP_STATUS_RETRY_LIMIT = 3
     }
 }
