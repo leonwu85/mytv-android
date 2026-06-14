@@ -7,7 +7,7 @@
 [![GitHub all releases](https://img.shields.io/github/downloads/leonwu85/mytv-android/total)](https://github.com/leonwu85/mytv-android/releases)
 
 </div>
-    <p>Fork 自 <a href="https://github.com/sakana164/mytv-android">sakana164/mytv-android</a>，当前维护仓库：<a href="https://github.com/leonwu85/mytv-android">leonwu85/mytv-android</a></p>
+    <p>Fork 自 <a href="https://github.com/sakana164/mytv-android">sakana164/mytv-android</a></p>
     <p>使用Android原生开发的视频播放软件</p>
 </div>
 
