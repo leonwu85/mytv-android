@@ -45,10 +45,24 @@ jobs:
 
       - name: Validate signing secrets
         run: |
-          test -n "$RELEASE_KEYSTORE_BASE64" || (echo "::error::Missing secret ANDROID_KEYSTORE_BASE64" && exit 1)
-          test -n "$KEYSTORE_PASSWORD" || (echo "::error::Missing secret ANDROID_KEYSTORE_PASSWORD" && exit 1)
-          test -n "$KEY_ALIAS" || (echo "::error::Missing secret ANDROID_KEY_ALIAS" && exit 1)
-          test -n "$KEY_PASSWORD" || (echo "::error::Missing secret ANDROID_KEY_PASSWORD" && exit 1)
+          missing=0
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "::error title=Missing signing secret::Set ANDROID_KEYSTORE_BASE64 from the current keystore.jks."
+            missing=1
+          fi
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error title=Missing signing secret::Set ANDROID_KEYSTORE_PASSWORD from the current key.properties storePassword."
+            missing=1
+          fi
+          if [ -z "$KEY_ALIAS" ]; then
+            echo "::error title=Missing signing secret::Set ANDROID_KEY_ALIAS from the current key.properties keyAlias."
+            missing=1
+          fi
+          if [ -z "$KEY_PASSWORD" ]; then
+            echo "::error title=Missing signing secret::Set ANDROID_KEY_PASSWORD from the current key.properties keyPassword."
+            missing=1
+          fi
+          exit "$missing"
 
       - name: Decode release keystore
         run: |

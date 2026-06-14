@@ -38,7 +38,7 @@ object Constants {
      * Git最新版本信息
      */
     const val GIT_RELEASE_LATEST_URL =
-        "https://api.github.com/repos/yaoxieyoulei/mytv-android/releases/latest"
+        "https://api.github.com/repos/leonwu85/mytv-android/releases/latest"
 
     /**
      * GitHub加速代理地址
