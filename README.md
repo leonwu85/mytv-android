@@ -90,30 +90,6 @@
 
 可以通过右侧release进行下载或拉取代码到本地进行编译
 
-### 自动发布
-
-推送任意 tag 后，GitHub Actions 会自动构建签名 release APK，并发布到对应的 GitHub Release。
-
-需要先在仓库 `Settings` -> `Secrets and variables` -> `Actions` 中配置以下 Secrets：
-
-- `ANDROID_KEYSTORE_BASE64`：当前签名文件 `keystore.jks` 的 Base64 内容
-- `ANDROID_KEYSTORE_PASSWORD`：当前 `key.properties` 中的 `storePassword`
-- `ANDROID_KEY_ALIAS`：当前 `key.properties` 中的 `keyAlias`
-- `ANDROID_KEY_PASSWORD`：当前 `key.properties` 中的 `keyPassword`
-
-Windows PowerShell 可使用以下命令生成 keystore 的 Base64 内容：
-
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("keystore.jks"))
-```
-
-发布示例：
-
-```shell
-git tag v1.4.5
-git push origin v1.4.5
-```
-
 ## 说明
 
 - 主要解决 [my_tv](https://github.com/yaoxieyoulei/my_tv)（flutter）在低端设备上播放（4k）视频卡顿掉帧
