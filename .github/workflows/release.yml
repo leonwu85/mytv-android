@@ -1,62 +1,81 @@
-name: Release
+name: Release APK
 
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-release:
+    name: Build and publish release
     runs-on: ubuntu-latest
 
+    env:
+      KEYSTORE: ${{ github.workspace }}/keystore.jks
+      RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
     steps:
-      - name: 代码迁出
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 构建Java环境
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: "zulu"
+          distribution: temurin
           java-version: "17"
 
-      - name: 解码生成 jks
-        run: echo $KEYSTORE_BASE64 | base64 -di > app/keystore.jks
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: 生成apk
-        run: chmod +x ./gradlew && ./gradlew assembleRelease
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD}}
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: 获取版本号
-        id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >>$GITHUB_OUTPUT
-
-      - name: 重命名应用
+      - name: Validate signing secrets
         run: |
-          for file in app/build/outputs/apk/release/app-*.apk; do
-            if [[ $file =~ app-(.?*)release.apk ]]; then
-              new_file_name="app/build/outputs/apk/release/mytv-android-${BASH_REMATCH[1]}${{ steps.version.outputs.version }}.apk"
-              mv "$file" "$new_file_name"
-            fi
-          done
+          test -n "$RELEASE_KEYSTORE_BASE64" || (echo "::error::Missing secret ANDROID_KEYSTORE_BASE64" && exit 1)
+          test -n "$KEYSTORE_PASSWORD" || (echo "::error::Missing secret ANDROID_KEYSTORE_PASSWORD" && exit 1)
+          test -n "$KEY_ALIAS" || (echo "::error::Missing secret ANDROID_KEY_ALIAS" && exit 1)
+          test -n "$KEY_PASSWORD" || (echo "::error::Missing secret ANDROID_KEY_PASSWORD" && exit 1)
 
-      - name: Prepare artifacts
+      - name: Decode release keystore
         run: |
-          mkdir artifacts
-          cp app/build/outputs/apk/release/*.apk artifacts/
+          printf "%s" "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
 
-      - name: Upload Release
-        uses: ncipollo/release-action@v1
+      - name: Build release APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Prepare release asset
+        run: |
+          mkdir -p release
+          cp app/build/outputs/apk/release/app-release.apk "release/mytv-android-${GITHUB_REF_NAME}.apk"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: v${{ steps.version.outputs.version }}
-          token: ${{ secrets.GIT_TOKEN }}
-          omitBodyDuringUpdate: true
-          omitNameDuringUpdate: true
-          omitPrereleaseDuringUpdate: true
-          allowUpdates: true
-          artifacts: artifacts/*
+          name: mytv-android-${{ github.ref_name }}
+          path: release/*.apk
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: release/*.apk

@@ -145,6 +145,10 @@ class LeanbackMainContentState(
     fun changeCurrentIptvToNext() {
         changeCurrentIptv(getNextIptv())
     }
+
+    fun refreshCurrentIptv() {
+        changeCurrentIptv(_currentIptv, _currentIptvUrlIdx)
+    }
 }
 
 @Composable

@@ -49,9 +49,12 @@ fun LeanbackQuickPanelScreen(
     currentProgrammesProvider: () -> EpgProgrammeCurrent? = { null },
     currentIptvChannelNoProvider: () -> String = { "" },
     videoPlayerMetadataProvider: () -> LeanbackVideoPlayer.Metadata = { LeanbackVideoPlayer.Metadata() },
+    showVideoPlayerMetadataProvider: () -> Boolean = { false },
     videoPlayerAspectRatioProvider: () -> Float = { 16f / 9f },
     onChangeVideoPlayerAspectRatio: (Float) -> Unit = {},
     onIptvUrlIdxChange: (Int) -> Unit = {},
+    onRefresh: () -> Unit = {},
+    onToggleVideoPlayerMetadata: () -> Unit = {},
     onClearCache: () -> Unit = {},
     onMoreSettings: () -> Unit = {},
     onClose: () -> Unit = {},
@@ -111,6 +114,18 @@ fun LeanbackQuickPanelScreen(
                         currentIptvUrlIdxProvider = currentIptvUrlIdxProvider,
                         onIptvUrlIdxChange = onIptvUrlIdxChange,
                         onUserAction = { autoCloseState.active() },
+                    )
+
+                    LeanbackQuickPanelButton(
+                        titleProvider = { "刷新" },
+                        onSelect = onRefresh,
+                    )
+
+                    LeanbackQuickPanelButton(
+                        titleProvider = {
+                            if (showVideoPlayerMetadataProvider()) "隐藏信息" else "显示信息"
+                        },
+                        onSelect = onToggleVideoPlayerMetadata,
                     )
 
                     LeanbackQuickPanelButton(

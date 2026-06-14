@@ -285,6 +285,7 @@ fun LeanbackMainContent(
                         .padStart(2, '0')
                 },
                 videoPlayerMetadataProvider = { videoPlayerState.metadata },
+                showVideoPlayerMetadataProvider = { settingsViewModel.debugShowVideoPlayerMetadata },
                 videoPlayerAspectRatioProvider = { videoPlayerState.aspectRatio },
                 onChangeVideoPlayerAspectRatio = { videoPlayerState.aspectRatio = it },
                 onIptvUrlIdxChange = {
@@ -292,6 +293,16 @@ fun LeanbackMainContent(
                         iptv = mainContentState.currentIptv,
                         urlIdx = it,
                     )
+                },
+                onRefresh = {
+                    mainContentState.refreshCurrentIptv()
+                    mainContentState.isQuickPanelVisible = false
+                    LeanbackToastState.I.showToast("已刷新播放")
+                },
+                onToggleVideoPlayerMetadata = {
+                    settingsViewModel.debugShowVideoPlayerMetadata =
+                        !settingsViewModel.debugShowVideoPlayerMetadata
+                    mainContentState.isQuickPanelVisible = false
                 },
                 onClearCache = {
                     settingsViewModel.iptvPlayableHostList = emptySet()

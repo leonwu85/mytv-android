@@ -2,11 +2,12 @@
     <h1>我的电视</h1>
 <div align="center">
 
-![GitHub repo size](https://img.shields.io/github/repo-size/yaoxieyoulei/mytv-android)
-![GitHub Repo stars](https://img.shields.io/github/stars/yaoxieyoulei/mytv-android)
-![GitHub all releases](https://img.shields.io/github/downloads/yaoxieyoulei/mytv-android/total)
+[![GitHub repo size](https://img.shields.io/github/repo-size/leonwu85/mytv-android)](https://github.com/leonwu85/mytv-android)
+[![GitHub Repo stars](https://img.shields.io/github/stars/leonwu85/mytv-android)](https://github.com/leonwu85/mytv-android/stargazers)
+[![GitHub all releases](https://img.shields.io/github/downloads/leonwu85/mytv-android/total)](https://github.com/leonwu85/mytv-android/releases)
 
 </div>
+    <p>Fork 自 <a href="https://github.com/sakana164/mytv-android">sakana164/mytv-android</a>，当前维护仓库：<a href="https://github.com/leonwu85/mytv-android">leonwu85/mytv-android</a></p>
     <p>使用Android原生开发的视频播放软件</p>
 </div>
 
@@ -27,9 +28,17 @@
 - 长按OK键：长按屏幕
 - 菜单、帮助键：双击屏幕
 
+### 播放快捷面板
+
+- 打开方式：长按OK键、按菜单/帮助键，或长按屏幕
+- 支持刷新当前频道当前线路
+- 支持显示/隐藏播放器详细信息（编码、解码器、分辨率、声道、采样率等）
+
 ### 自定义设置
 
-- 访问以下网址：`http://<设备IP>:10481`
+- 访问应用设置界面或二维码中显示的网址，例如：`http://<设备IP>:8080`
+- 配置服务会自动选择可用端口，依次尝试：`8080`、`10481`、`18080`
+- 若无法打开设置页面，可先访问 `http://<设备IP>:<端口>/api/ping`，正常应返回 `ok`
 - 打开应用设置界面，移到最后一项
 - 支持自定义订阅源、自定义节目单、缓存时间等等
 - 须知：网页中引用了`jsdelivr`的cdn，请确保能够正常访问
@@ -81,11 +90,35 @@
 
 可以通过右侧release进行下载或拉取代码到本地进行编译
 
+### 自动发布
+
+推送任意 tag 后，GitHub Actions 会自动构建签名 release APK，并发布到对应的 GitHub Release。
+
+需要先在仓库 `Settings` -> `Secrets and variables` -> `Actions` 中配置以下 Secrets：
+
+- `ANDROID_KEYSTORE_BASE64`：当前签名文件 `keystore.jks` 的 Base64 内容
+- `ANDROID_KEYSTORE_PASSWORD`：当前 `key.properties` 中的 `storePassword`
+- `ANDROID_KEY_ALIAS`：当前 `key.properties` 中的 `keyAlias`
+- `ANDROID_KEY_PASSWORD`：当前 `key.properties` 中的 `keyPassword`
+
+Windows PowerShell 可使用以下命令生成 keystore 的 Base64 内容：
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("keystore.jks"))
+```
+
+发布示例：
+
+```shell
+git tag v1.4.5
+git push origin v1.4.5
+```
+
 ## 说明
 
 - 主要解决 [my_tv](https://github.com/yaoxieyoulei/my_tv)（flutter）在低端设备上播放（4k）视频卡顿掉帧
 - 仅支持Android5及以上
-- 网络环境必须支持IPV6（默认订阅源）
+- 默认不内置直播源，请通过自定义设置页面配置订阅源
 - 只在自家电视上测过，其他电视稳定性未知
 
 ## 功能
@@ -102,6 +135,8 @@
 - [x] 自定义节目单
 - [x] 频道收藏
 - [x] 应用自定义设置
+- [x] AV3A/Audio Vivid音频解析与播放
+- [x] 播放刷新与播放器信息显示
 
 ## 更新日志
 
