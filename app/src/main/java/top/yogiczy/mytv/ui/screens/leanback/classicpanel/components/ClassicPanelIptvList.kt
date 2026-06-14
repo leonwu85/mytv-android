@@ -1,9 +1,12 @@
 package top.yogiczy.mytv.ui.screens.leanback.classicpanel.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,8 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -36,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyListState
 import androidx.tv.foundation.lazy.list.itemsIndexed
-import androidx.tv.material3.ListItemDefaults
 import kotlinx.coroutines.flow.distinctUntilChanged
 import top.yogiczy.mytv.data.entities.EpgList
 import top.yogiczy.mytv.data.entities.EpgList.Companion.currentProgrammes
@@ -163,8 +163,21 @@ private fun LeanbackClassicPanelIptvItem(
     val iptv = iptvProvider()
     val focusRequester = focusRequesterProvider()
     val currentProgramme = epgProgrammeCurrentProvider()?.now
+    val isSelected = isSelectedProvider()
 
     var isFocused by remember { mutableStateOf(false) }
+    val colorScheme = MaterialTheme.colorScheme
+    val localContentColor = LocalContentColor.current
+    val containerColor = remember(isFocused, isSelected) {
+        if (isFocused) colorScheme.onBackground
+        else if (isSelected) colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        else colorScheme.background.copy(alpha = 0.8f)
+    }
+    val contentColor = remember(isFocused, isSelected) {
+        if (isFocused) colorScheme.background
+        else if (isSelected) colorScheme.onBackground
+        else localContentColor
+    }
 
     LaunchedEffect(Unit) {
         if (initialFocusedProvider()) {
@@ -173,66 +186,58 @@ private fun LeanbackClassicPanelIptvItem(
         }
     }
 
-    CompositionLocalProvider(
-        LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background
-        else MaterialTheme.colorScheme.onBackground
-    ) {
-        Box(
-            modifier = Modifier.clip(ListItemDefaults.shape().shape),
-        ) {
-            androidx.tv.material3.ListItem(
-                modifier = modifier
-                    .focusRequester(focusRequester)
-                    .onFocusChanged {
-                        isFocused = it.isFocused || it.hasFocus
+    Box(
+        modifier = modifier
+            .focusRequester(focusRequester)
+            .onFocusChanged {
+                isFocused = it.isFocused || it.hasFocus
 
-                        if (isFocused) {
-                            onFocused()
-                        }
-                    }
-                    .handleLeanbackKeyEvents(
-                        key = iptv.hashCode(),
-                        onSelect = {
-                            if (isFocused) onSelected()
-                            else focusRequester.requestFocus()
-                        },
-                        onLongSelect = {
-                            if (isFocused) onFavoriteToggle()
-                            else focusRequester.requestFocus()
-                        },
-                    ),
-                colors = ListItemDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.onBackground,
-                    selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
-                        alpha = 0.5f
-                    ),
-                ),
-                selected = isSelectedProvider(),
-                onClick = { },
-                headlineContent = {
-                    Text(text = iptv.name, maxLines = 2)
+                if (isFocused) {
+                    onFocused()
+                }
+            }
+            .handleLeanbackKeyEvents(
+                key = iptv.hashCode(),
+                onSelect = {
+                    if (isFocused) onSelected()
+                    else focusRequester.requestFocus()
                 },
-                supportingContent = {
-                    Text(
-                        text = currentProgramme?.title ?: "无节目",
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                        modifier = Modifier.alpha(0.8f),
-                    )
+                onLongSelect = {
+                    if (isFocused) onFavoriteToggle()
+                    else focusRequester.requestFocus()
                 },
             )
-
-            if (showProgrammeProgressProvider() && currentProgramme != null) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .fillMaxWidth(currentProgramme.progress())
-                        .height(3.dp)
-                        .background(
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                        ),
+            .focusable()
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 64.dp)
+            .background(containerColor, MaterialTheme.shapes.small),
+    ) {
+        CompositionLocalProvider(LocalContentColor provides contentColor) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.SpaceAround,
+            ) {
+                Text(text = iptv.name, maxLines = 2)
+                Text(
+                    text = currentProgramme?.title ?: "无节目",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        color = LocalContentColor.current.copy(alpha = 0.8f),
+                    ),
+                    maxLines = 1,
                 )
             }
+        }
+
+        if (showProgrammeProgressProvider() && currentProgramme != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth(currentProgramme.progress())
+                    .height(3.dp)
+                    .background(contentColor.copy(alpha = 0.9f)),
+            )
         }
     }
 }

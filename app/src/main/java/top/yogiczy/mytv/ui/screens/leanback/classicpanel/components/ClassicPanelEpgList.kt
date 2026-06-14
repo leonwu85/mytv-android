@@ -1,12 +1,17 @@
 package top.yogiczy.mytv.ui.screens.leanback.classicpanel.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -15,7 +20,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -23,14 +27,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -38,7 +43,6 @@ import androidx.tv.foundation.ExperimentalTvFoundationApi
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyListState
 import androidx.tv.foundation.lazy.list.items
-import androidx.tv.material3.ListItemDefaults
 import kotlinx.coroutines.flow.distinctUntilChanged
 import top.yogiczy.mytv.data.entities.Epg
 import top.yogiczy.mytv.data.entities.EpgProgramme
@@ -142,54 +146,71 @@ private fun LeanbackClassicPanelEpgItem(
 ) {
     val programme = epgProgrammeProvider()
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val isSelected = programme.isLive()
 
     val focusRequester = remember { FocusRequester() }
     var isFocused by remember { mutableStateOf(false) }
+    val colorScheme = MaterialTheme.colorScheme
+    val localContentColor = LocalContentColor.current
+    val containerColor = remember(isFocused, isSelected) {
+        if (isFocused) colorScheme.onBackground
+        else if (isSelected) colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        else Color.Transparent
+    }
+    val contentColor = remember(isFocused, isSelected) {
+        if (isFocused) colorScheme.background
+        else if (isSelected) colorScheme.onBackground
+        else localContentColor
+    }
 
-    CompositionLocalProvider(
-        LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background
-        else MaterialTheme.colorScheme.onBackground
+    Box(
+        modifier = modifier
+            .focusRequester(focusRequester)
+            .onFocusChanged {
+                isFocused = it.isFocused || it.hasFocus
+            }
+            .handleLeanbackKeyEvents(
+                onSelect = {
+                    focusRequester.requestFocus()
+                },
+            )
+            .focusable()
+            .fillMaxWidth()
+            .sizeIn(minHeight = 52.dp)
+            .background(containerColor, MaterialTheme.shapes.small)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        androidx.tv.material3.ListItem(
-            modifier = modifier
-                .focusRequester(focusRequester)
-                .onFocusChanged {
-                    isFocused = it.isFocused || it.hasFocus
-                }
-                .handleLeanbackKeyEvents(
-                    onSelect = {
-                        focusRequester.requestFocus()
-                    },
-                ),
-            colors = ListItemDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.onBackground,
-                selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
-                    alpha = 0.5f
-                ),
-            ),
-            selected = programme.isLive(),
-            onClick = { },
-            headlineContent = {
-                Text(
-                    text = programme.title,
-                    maxLines = if (isFocused) Int.MAX_VALUE else 1,
-                )
-            },
-            overlineContent = {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
                 val start = timeFormat.format(programme.startAt)
                 val end = timeFormat.format(programme.endAt)
                 Text(
                     text = "$start  ~ $end",
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.alpha(0.8f),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        color = contentColor.copy(alpha = 0.8f),
+                    ),
                 )
-            },
-            trailingContent = {
-                if (programme.isLive()) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = "playing")
-                }
-            },
-        )
+                Text(
+                    text = programme.title,
+                    maxLines = if (isFocused) Int.MAX_VALUE else 1,
+                    color = contentColor,
+                )
+            }
+
+            if (isSelected) {
+                Icon(
+                    Icons.Default.PlayArrow,
+                    contentDescription = "playing",
+                    tint = contentColor,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
     }
 }
 
@@ -211,54 +232,60 @@ private fun LeanbackClassicPanelEpgDayItem(
     val focusRequester = remember { FocusRequester() }
     val isSelected by remember(currentDayProvider()) { derivedStateOf { day == currentDayProvider() } }
     var isFocused by remember { mutableStateOf(false) }
+    val colorScheme = MaterialTheme.colorScheme
+    val localContentColor = LocalContentColor.current
+    val containerColor = remember(isFocused, isSelected) {
+        if (isFocused) colorScheme.onBackground
+        else if (isSelected) colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        else Color.Transparent
+    }
+    val contentColor = remember(isFocused, isSelected) {
+        if (isFocused) colorScheme.background
+        else if (isSelected) colorScheme.onBackground
+        else localContentColor
+    }
 
-    CompositionLocalProvider(
-        LocalContentColor provides if (isFocused) MaterialTheme.colorScheme.background
-        else MaterialTheme.colorScheme.onBackground
+    Box(
+        modifier = modifier
+            .focusRequester(focusRequester)
+            .onFocusChanged {
+                isFocused = it.isFocused || it.hasFocus
+            }
+            .handleLeanbackKeyEvents(
+                onSelect = {
+                    if (isFocused) onChangeCurrentDay()
+                    else focusRequester.requestFocus()
+                }
+            )
+            .focusable()
+            .fillMaxWidth()
+            .background(containerColor, MaterialTheme.shapes.small)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
-        androidx.tv.material3.ListItem(
-            modifier = modifier
-                .focusRequester(focusRequester)
-                .onFocusChanged {
-                    isFocused = it.isFocused || it.hasFocus
-                }
-                .handleLeanbackKeyEvents(
-                    onSelect = {
-                        if (isFocused) onChangeCurrentDay()
-                        else focusRequester.requestFocus()
-                    }
-                ),
-            colors = ListItemDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.onBackground,
-                selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
-                    alpha = 0.5f
-                ),
-            ),
-            selected = isSelected,
-            onClick = {},
-            headlineContent = {
-                Column {
-                    val key = day.split(" ")
+        Column {
+            val key = day.split(" ")
 
-                    Text(
-                        text = when (day) {
-                            today -> "今天"
-                            tomorrow -> "明天"
-                            dayAfterTomorrow -> "后天"
-                            else -> key[0]
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                    )
+            Text(
+                text = when (day) {
+                    today -> "今天"
+                    tomorrow -> "明天"
+                    dayAfterTomorrow -> "后天"
+                    else -> key[0]
+                },
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                color = contentColor,
+                style = MaterialTheme.typography.titleSmall,
+            )
 
-                    Text(
-                        text = key[1],
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            },
-        )
+            Text(
+                text = key[1],
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                color = contentColor,
+                style = MaterialTheme.typography.titleSmall,
+            )
+        }
     }
 }
 
