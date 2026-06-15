@@ -14,6 +14,8 @@ import androidx.media3.common.util.Util
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
@@ -38,8 +40,23 @@ class LeanbackMedia3VideoPlayer(
     private val videoPlayer = ExoPlayer.Builder(
         context,
         DefaultRenderersFactory(context).setExtensionRendererMode(EXTENSION_RENDERER_MODE_ON)
-    ).build().apply {
+    ).setLoadControl(buildLoadControl()).build().apply {
         playWhenReady = true
+    }
+
+    /**
+     * 根据用户配置的播放缓冲时长构建 LoadControl。
+     * 直播场景使用 minBufferMs == maxBufferMs 的恒定高缓冲，可减少卡顿。
+     * 缓冲值限制在 ExoPlayer 允许的区间 [5s, 50s] 内（DefaultLoadControl 约束）。
+     */
+    private fun buildLoadControl(): DefaultLoadControl {
+        // DefaultLoadControl 允许的最小/最大缓冲区间
+        val minAllowed = 5_000
+        val maxAllowed = 50_000
+        val bufferMs = SP.videoPlayerBufferDuration.toInt().coerceIn(minAllowed, maxAllowed)
+        return DefaultLoadControl.Builder()
+            .setBufferDurationsMs(bufferMs, bufferMs, 1000, 2000)
+            .build()
     }
 
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
@@ -48,14 +65,26 @@ class LeanbackMedia3VideoPlayer(
 
     @OptIn(UnstableApi::class)
     private fun prepare(uri: Uri, contentType: Int? = null) {
-        val dataSourceFactory =
-            DefaultDataSource.Factory(context, DefaultHttpDataSource.Factory().apply {
-                setUserAgent(SP.videoPlayerUserAgent)
-                setConnectTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
-                setReadTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
-                setKeepPostFor302Redirects(true)
-                setAllowCrossProtocolRedirects(true)
-            })
+        val httpFactory = DefaultHttpDataSource.Factory().apply {
+            setUserAgent(SP.videoPlayerUserAgent)
+            setConnectTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
+            setReadTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
+            setKeepPostFor302Redirects(true)
+            setAllowCrossProtocolRedirects(true)
+        }
+
+        // 分片磁盘缓存：开启时用 CacheDataSource 包一层，出错时自动回退到上游直连
+        val upstreamFactory =
+            if (SP.videoPlayerSegmentDiskCacheEnable) {
+                CacheDataSource.Factory()
+                    .setCache(VideoCache.get(context))
+                    .setUpstreamDataSourceFactory(httpFactory)
+                    .setFlags(CACHE_FLAGS)
+            } else {
+                httpFactory
+            }
+
+        val dataSourceFactory = DefaultDataSource.Factory(context, upstreamFactory)
 
         val mediaItem = MediaItem.fromUri(uri)
 

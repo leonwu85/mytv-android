@@ -71,6 +71,21 @@ object Constants {
     const val VIDEO_PLAYER_LOAD_TIMEOUT = 1000L * 15 // 15秒
 
     /**
+     * 播放器播放缓冲时长（毫秒），值越大抗抖动能力越强，可减少卡顿
+     */
+    const val VIDEO_PLAYER_BUFFER_DURATION = 1000L * 30 // 30秒
+
+    /**
+     * 播放器是否启用分片磁盘缓存
+     */
+    const val VIDEO_PLAYER_SEGMENT_DISK_CACHE_ENABLE = true
+
+    /**
+     * 播放器分片磁盘缓存上限（字节）
+     */
+    const val VIDEO_PLAYER_SEGMENT_DISK_CACHE_MAX_SIZE = 512L * 1024 * 1024 // 512MB
+
+    /**
      * 界面 超时未操作自动关闭界面
      */
     const val UI_SCREEN_AUTO_CLOSE_DELAY = 1000L * 15 // 15秒

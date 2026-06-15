@@ -3,6 +3,7 @@ package top.yogiczy.mytv.ui.screens.leanback.settings.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -66,6 +67,39 @@ fun LeanbackSettingsCategoryVideoPlayer(
                 headlineContent = "播放器自定义UA",
                 supportingContent = settingsViewModel.videoPlayerUserAgent,
                 remoteConfig = true,
+            )
+        }
+
+        item {
+            val min = 1000 * 10L
+            val max = 1000 * 60L
+            val step = 1000 * 10L
+
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "播放缓冲时长",
+                supportingContent = "加大可减少卡顿与缓冲圈",
+                trailingContent = settingsViewModel.videoPlayerBufferDuration.humanizeMs(),
+                onSelected = {
+                    settingsViewModel.videoPlayerBufferDuration =
+                        max(min, (settingsViewModel.videoPlayerBufferDuration + step) % (max + step))
+                },
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "启用分片磁盘缓存",
+                supportingContent = "断网时优先读取已缓存分片",
+                trailingContent = {
+                    Switch(
+                        checked = settingsViewModel.videoPlayerSegmentDiskCacheEnable,
+                        onCheckedChange = null,
+                    )
+                },
+                onSelected = {
+                    settingsViewModel.videoPlayerSegmentDiskCacheEnable =
+                        !settingsViewModel.videoPlayerSegmentDiskCacheEnable
+                },
             )
         }
     }
