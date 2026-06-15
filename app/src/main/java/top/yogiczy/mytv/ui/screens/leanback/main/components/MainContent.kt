@@ -28,6 +28,7 @@ import top.yogiczy.mytv.data.entities.EpgList
 import top.yogiczy.mytv.data.entities.EpgList.Companion.currentProgrammes
 import top.yogiczy.mytv.data.entities.IptvGroupList
 import top.yogiczy.mytv.data.entities.IptvGroupList.Companion.iptvIdx
+import top.yogiczy.mytv.ui.screens.leanback.video.player.VideoCache
 import top.yogiczy.mytv.data.entities.IptvGroupList.Companion.iptvList
 import top.yogiczy.mytv.ui.screens.leanback.classicpanel.LeanbackClassicPanelScreen
 import top.yogiczy.mytv.ui.screens.leanback.components.LeanbackVisible
@@ -307,6 +308,8 @@ fun LeanbackMainContent(
                 onClearCache = {
                     settingsViewModel.iptvPlayableHostList = emptySet()
                     coroutineScope.launch {
+                        // 先释放媒体缓存对象，避免删除磁盘文件后索引库不一致
+                        VideoCache.release()
                         AppGlobal.cacheDir.deleteRecursively()
                     }
                     LeanbackToastState.I.showToast("缓存已清除，请重启应用")

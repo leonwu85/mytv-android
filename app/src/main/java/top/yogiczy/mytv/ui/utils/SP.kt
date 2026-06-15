@@ -117,6 +117,12 @@ object SP {
 
         /** 播放器 画面比例 */
         VIDEO_PLAYER_ASPECT_RATIO,
+
+        /** 播放器 播放缓冲时长 */
+        VIDEO_PLAYER_BUFFER_DURATION,
+
+        /** 播放器 启用分片磁盘缓存 */
+        VIDEO_PLAYER_SEGMENT_DISK_CACHE_ENABLE,
     }
 
     /** ==================== 应用 ==================== */
@@ -288,6 +294,22 @@ object SP {
             sp.getInt(KEY.VIDEO_PLAYER_ASPECT_RATIO.name, VideoPlayerAspectRatio.ORIGINAL.value)
         )
         set(value) = sp.edit().putInt(KEY.VIDEO_PLAYER_ASPECT_RATIO.name, value.value).apply()
+
+    /** 播放器 播放缓冲时长（毫秒） */
+    var videoPlayerBufferDuration: Long
+        get() = sp.getLong(
+            KEY.VIDEO_PLAYER_BUFFER_DURATION.name, Constants.VIDEO_PLAYER_BUFFER_DURATION
+        )
+        set(value) = sp.edit().putLong(KEY.VIDEO_PLAYER_BUFFER_DURATION.name, value).apply()
+
+    /** 播放器 启用分片磁盘缓存 */
+    var videoPlayerSegmentDiskCacheEnable: Boolean
+        get() = sp.getBoolean(
+            KEY.VIDEO_PLAYER_SEGMENT_DISK_CACHE_ENABLE.name,
+            Constants.VIDEO_PLAYER_SEGMENT_DISK_CACHE_ENABLE,
+        )
+        set(value) = sp.edit()
+            .putBoolean(KEY.VIDEO_PLAYER_SEGMENT_DISK_CACHE_ENABLE.name, value).apply()
 
     enum class UiTimeShowMode(val value: Int) {
         /** 隐藏 */

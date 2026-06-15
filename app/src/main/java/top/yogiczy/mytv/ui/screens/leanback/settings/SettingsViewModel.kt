@@ -249,4 +249,20 @@ class LeanbackSettingsViewModel : ViewModel() {
             _videoPlayerAspectRatio = value
             SP.videoPlayerAspectRatio = value
         }
+
+    private var _videoPlayerBufferDuration by mutableLongStateOf(SP.videoPlayerBufferDuration)
+    var videoPlayerBufferDuration: Long
+        get() = _videoPlayerBufferDuration
+        set(value) {
+            _videoPlayerBufferDuration = value
+            SP.videoPlayerBufferDuration = value
+        }
+
+    private var _videoPlayerSegmentDiskCacheEnable by mutableStateOf(SP.videoPlayerSegmentDiskCacheEnable)
+    var videoPlayerSegmentDiskCacheEnable: Boolean
+        get() = _videoPlayerSegmentDiskCacheEnable
+        set(value) {
+            _videoPlayerSegmentDiskCacheEnable = value
+            SP.videoPlayerSegmentDiskCacheEnable = value
+        }
 }
