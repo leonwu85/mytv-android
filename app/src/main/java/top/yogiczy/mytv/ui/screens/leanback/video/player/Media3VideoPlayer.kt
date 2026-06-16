@@ -67,11 +67,21 @@ class LeanbackMedia3VideoPlayer(
     private val contentTypeAttempts = mutableMapOf<Int, Boolean>()
     private var updatePositionJob: Job? = null
     private var httpStatusRetryCount = 0
+    private var ioRetryCount = 0
+    private var hlsDirectRetryUsed = false
+    private var currentUseSegmentCache = true
 
     @OptIn(UnstableApi::class)
-    private fun prepare(uri: Uri, contentType: Int? = null) {
+    private fun prepare(
+        uri: Uri,
+        contentType: Int? = null,
+        useSegmentCache: Boolean = true,
+    ) {
         // 播放频道 User-Agent：优先用频道请求头，回退到全局播放器 UA
-        val effectiveUserAgent = SP.iptvChannelRequestHeaders.trim().ifBlank { SP.videoPlayerUserAgent }
+        val effectiveUserAgent = SP.iptvChannelRequestHeaders
+            .trim()
+            .ifBlank { SP.videoPlayerUserAgent }
+            .ifBlank { Util.getUserAgent(context, "MyTV") }
         val httpFactory = DefaultHttpDataSource.Factory().apply {
             setUserAgent(effectiveUserAgent)
             setConnectTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
@@ -82,7 +92,7 @@ class LeanbackMedia3VideoPlayer(
 
         // 分片磁盘缓存：开启时用 CacheDataSource 包一层，出错时自动回退到上游直连
         val cacheDataSourceFactory =
-            if (SP.videoPlayerSegmentDiskCacheEnable) {
+            if (SP.videoPlayerSegmentDiskCacheEnable && useSegmentCache) {
                 CacheDataSource.Factory()
                     .setCache(VideoCache.get(context))
                     .setUpstreamDataSourceFactory(httpFactory)
@@ -97,8 +107,9 @@ class LeanbackMedia3VideoPlayer(
             ?: directDataSourceFactory
 
         val mediaItem = MediaItem.fromUri(uri)
+        val resolvedContentType = contentType ?: Util.inferContentType(uri)
 
-        val mediaSource = when (val type = contentType ?: Util.inferContentType(uri)) {
+        val mediaSource = when (resolvedContentType) {
             C.CONTENT_TYPE_HLS -> {
                 HlsMediaSource.Factory(
                     cacheDataSourceFactory?.let {
@@ -129,7 +140,7 @@ class LeanbackMedia3VideoPlayer(
             else -> {
                 triggerError(
                     PlaybackException.UNSUPPORTED_TYPE.copy(
-                        errorCodeName = "${PlaybackException.UNSUPPORTED_TYPE.message}_$type"
+                        errorCodeName = "${PlaybackException.UNSUPPORTED_TYPE.message}_$resolvedContentType"
                     )
                 )
                 null
@@ -137,7 +148,8 @@ class LeanbackMedia3VideoPlayer(
         }
 
         if (mediaSource != null) {
-            contentTypeAttempts[contentType ?: Util.inferContentType(uri)] = true
+            currentUseSegmentCache = useSegmentCache
+            contentTypeAttempts[resolvedContentType] = true
             videoPlayer.setMediaSource(mediaSource)
             videoPlayer.prepare()
             triggerPrepared()
@@ -184,10 +196,19 @@ class LeanbackMedia3VideoPlayer(
                     }
                 }
             } else if (ex.errorCode == Media3PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS &&
-                retryCurrentMediaItem(ex)
+                retryCurrentMediaItem(ex, "HTTP状态异常")
+            ) {
+                return
+            } else if (shouldRetryAsHls(ex) && retryCurrentMediaItemAsHls(ex)) {
+                return
+            } else if (retryHlsWithoutSegmentCache(ex)) {
+                return
+            } else if (isRecoverableIoErrorCode(ex.errorCode) &&
+                retryCurrentMediaItem(ex, "IO异常")
             ) {
                 return
             } else {
+                log.w("播放失败: ${ex.toPlaybackException().errorCodeName}", ex)
                 triggerError(ex.toPlaybackException())
             }
         }
@@ -198,6 +219,7 @@ class LeanbackMedia3VideoPlayer(
                 triggerBuffering(true)
             } else if (playbackState == Player.STATE_READY) {
                 httpStatusRetryCount = 0
+                ioRetryCount = 0
                 triggerReady()
 
                 updatePositionJob?.cancel()
@@ -289,6 +311,9 @@ class LeanbackMedia3VideoPlayer(
     override fun prepare(url: String) {
         contentTypeAttempts.clear()
         httpStatusRetryCount = 0
+        ioRetryCount = 0
+        hlsDirectRetryUsed = false
+        currentUseSegmentCache = true
         prepare(Uri.parse(url))
     }
 
@@ -304,13 +329,19 @@ class LeanbackMedia3VideoPlayer(
         videoPlayer.setVideoSurfaceView(surfaceView)
     }
 
-    private fun retryCurrentMediaItem(ex: Media3PlaybackException): Boolean {
+    private fun retryCurrentMediaItem(
+        ex: Media3PlaybackException,
+        reason: String,
+    ): Boolean {
         val uri = videoPlayer.currentMediaItem?.localConfiguration?.uri ?: return false
-        if (httpStatusRetryCount >= HTTP_STATUS_RETRY_LIMIT) return false
+        val isHttpStatusError = ex.errorCode == Media3PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
+        val retryCount = if (isHttpStatusError) httpStatusRetryCount else ioRetryCount
+        val retryLimit = if (isHttpStatusError) HTTP_STATUS_RETRY_LIMIT else IO_RETRY_LIMIT
+        if (retryCount >= retryLimit) return false
 
-        httpStatusRetryCount++
+        if (isHttpStatusError) httpStatusRetryCount++ else ioRetryCount++
         log.w(
-            "HTTP状态异常，重新拉取播放地址($httpStatusRetryCount/$HTTP_STATUS_RETRY_LIMIT): " +
+            "$reason，重新拉取播放地址(${retryCount + 1}/$retryLimit): " +
                 "${ex.toPlaybackException().errorCodeName} $uri",
             ex,
         )
@@ -319,14 +350,77 @@ class LeanbackMedia3VideoPlayer(
         updatePositionJob = null
         coroutineScope.launch {
             delay(500)
-            prepare(uri)
+            prepare(
+                uri = uri,
+                contentType = currentContentTypeForRetry(uri),
+                useSegmentCache = currentUseSegmentCache,
+            )
         }
         return true
     }
 
+    private fun retryCurrentMediaItemAsHls(ex: Media3PlaybackException): Boolean {
+        val uri = videoPlayer.currentMediaItem?.localConfiguration?.uri ?: return false
+        if (contentTypeAttempts[C.CONTENT_TYPE_HLS] == true) return false
+
+        ioRetryCount++
+        log.w("IO异常，尝试按 HLS 重新打开: ${ex.toPlaybackException().errorCodeName} $uri", ex)
+        updatePositionJob?.cancel()
+        updatePositionJob = null
+        coroutineScope.launch {
+            delay(400)
+            prepare(uri, C.CONTENT_TYPE_HLS)
+        }
+        return true
+    }
+
+    private fun currentContentTypeForRetry(uri: Uri): Int? {
+        return when {
+            contentTypeAttempts[C.CONTENT_TYPE_HLS] == true -> C.CONTENT_TYPE_HLS
+            contentTypeAttempts[C.CONTENT_TYPE_OTHER] == true -> C.CONTENT_TYPE_OTHER
+            else -> Util.inferContentType(uri)
+        }
+    }
+
+    private fun retryHlsWithoutSegmentCache(ex: Media3PlaybackException): Boolean {
+        if (!isRecoverableIoErrorCode(ex.errorCode)) return false
+        if (!SP.videoPlayerSegmentDiskCacheEnable) return false
+        if (!currentUseSegmentCache) return false
+        if (hlsDirectRetryUsed) return false
+        if (contentTypeAttempts[C.CONTENT_TYPE_HLS] != true) return false
+
+        val uri = videoPlayer.currentMediaItem?.localConfiguration?.uri ?: return false
+        hlsDirectRetryUsed = true
+        ioRetryCount++
+        log.w("HLS 分片缓存 IO 异常，切换为直连重试: ${ex.toPlaybackException().errorCodeName} $uri", ex)
+        updatePositionJob?.cancel()
+        updatePositionJob = null
+        coroutineScope.launch {
+            delay(400)
+            prepare(uri, C.CONTENT_TYPE_HLS, useSegmentCache = false)
+        }
+        return true
+    }
+
+    private fun shouldRetryAsHls(ex: Media3PlaybackException): Boolean {
+        return isRecoverableIoErrorCode(ex.errorCode) &&
+            contentTypeAttempts[C.CONTENT_TYPE_HLS] != true
+    }
+
+    private fun isRecoverableIoErrorCode(errorCode: Int): Boolean {
+        return errorCode == Media3PlaybackException.ERROR_CODE_IO_UNSPECIFIED ||
+            errorCode == Media3PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
+            errorCode == Media3PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
+    }
+
     private fun Media3PlaybackException.toPlaybackException(): PlaybackException {
         val responseCode = findInvalidResponseCodeException()?.responseCode
-        val name = if (responseCode != null) "${errorCodeName}_$responseCode" else errorCodeName
+        val causeName = findUsefulCause()?.toShortErrorName()
+        val name = listOfNotNull(
+            errorCodeName,
+            responseCode?.toString(),
+            causeName,
+        ).joinToString("_")
         return PlaybackException(name, errorCode)
     }
 
@@ -339,7 +433,31 @@ class LeanbackMedia3VideoPlayer(
         return null
     }
 
+    private fun Throwable.findUsefulCause(): Throwable? {
+        var current = cause
+        var last: Throwable? = null
+        while (current != null) {
+            last = current
+            current = current.cause
+        }
+        return last ?: cause
+    }
+
+    private fun Throwable.toShortErrorName(): String {
+        val message = message
+            ?.replace(Regex("""https?://\S+"""), "url")
+            ?.replace(Regex("""\s+"""), " ")
+            ?.take(80)
+            ?.replace(Regex("""[^A-Za-z0-9_ .:-]"""), "")
+            ?.trim()
+            .orEmpty()
+
+        return if (message.isBlank()) javaClass.simpleName
+        else "${javaClass.simpleName}:${message}"
+    }
+
     private companion object {
         const val HTTP_STATUS_RETRY_LIMIT = 3
+        const val IO_RETRY_LIMIT = 2
     }
 }

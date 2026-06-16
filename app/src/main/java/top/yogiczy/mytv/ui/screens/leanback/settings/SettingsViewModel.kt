@@ -10,6 +10,16 @@ import androidx.lifecycle.ViewModel
 import top.yogiczy.mytv.ui.utils.SP
 
 class LeanbackSettingsViewModel : ViewModel() {
+    fun syncFromStorage() {
+        _iptvLastIptvIdx = SP.iptvLastIptvIdx
+        _iptvSourceUrl = SP.iptvSourceUrl
+        _iptvSourceUrlHistoryList = SP.iptvSourceUrlHistoryList
+        _iptvSourceEmbeddedEpgUrl = SP.iptvSourceEmbeddedEpgUrl
+        _epgXmlUrl = SP.epgXmlUrl
+        _epgXmlUrlHistoryList = SP.epgXmlUrlHistoryList
+        _videoPlayerUserAgent = SP.videoPlayerUserAgent
+    }
+
     private var _appBootLaunch by mutableStateOf(SP.appBootLaunch)
     var appBootLaunch: Boolean
         get() = _appBootLaunch

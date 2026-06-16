@@ -40,6 +40,7 @@ import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.HttpServer
 import top.yogiczy.mytv.ui.utils.SP
+import top.yogiczy.mytv.ui.utils.SettingsUpdate
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 import top.yogiczy.mytv.utils.humanizeMs
 import kotlin.math.max
@@ -196,7 +197,11 @@ fun LeanbackSettingsCategoryIptv(
                     showDialog = false
                     if (settingsViewModel.iptvSourceUrl != it) {
                         settingsViewModel.iptvSourceUrl = it
+                        settingsViewModel.iptvLastIptvIdx = 0
+                        settingsViewModel.iptvSourceEmbeddedEpgUrl = ""
                         coroutineScope.launch { IptvRepository().clearCache() }
+                        HttpServer.notifySettingsUpdate(SettingsUpdate(iptvSourceChanged = true))
+                        LeanbackToastState.I.showToast("直播源已切换，正在刷新")
                     }
                 },
                 onDeleted = {

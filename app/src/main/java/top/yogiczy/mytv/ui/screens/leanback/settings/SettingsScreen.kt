@@ -28,6 +28,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import top.yogiczy.mytv.ui.rememberLeanbackChildPadding
 import top.yogiczy.mytv.ui.screens.leanback.settings.components.LeanbackSettingsCategoryContent
 import top.yogiczy.mytv.ui.screens.leanback.settings.components.LeanbackSettingsCategoryList
@@ -36,16 +37,24 @@ import top.yogiczy.mytv.ui.theme.LeanbackGlassSurface
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.theme.leanbackBottomScrim
 import top.yogiczy.mytv.ui.theme.leanbackSideScrim
+import top.yogiczy.mytv.ui.utils.HttpServer
 
 @Composable
 fun LeanbackSettingsScreen(
     modifier: Modifier = Modifier,
     channelNameProvider: () -> String = { "" },
+    settingsViewModel: LeanbackSettingsViewModel = viewModel(),
 ) {
     val childPadding = rememberLeanbackChildPadding()
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+
+    LaunchedEffect(settingsViewModel) {
+        HttpServer.settingsUpdates.collect {
+            settingsViewModel.syncFromStorage()
+        }
     }
 
     var focusedCategory by remember { mutableStateOf(LeanbackSettingsCategories.UI) }
@@ -119,6 +128,7 @@ fun LeanbackSettingsScreen(
                     LeanbackSettingsCategoryContent(
                         modifier = Modifier.weight(1f),
                         focusedCategoryProvider = { focusedCategory },
+                        settingsViewModel = settingsViewModel,
                     )
                 }
             }

@@ -10,6 +10,9 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -39,6 +42,9 @@ import java.net.URL
 
 object HttpServer : Loggable() {
     private val SERVER_PORTS = listOf(8080, 10481, 18080)
+
+    private val _settingsUpdates = MutableSharedFlow<SettingsUpdate>(extraBufferCapacity = 8)
+    val settingsUpdates: SharedFlow<SettingsUpdate> = _settingsUpdates.asSharedFlow()
 
     @Volatile
     private var activeServerPort = SERVER_PORTS.first()
@@ -237,7 +243,7 @@ object HttpServer : Loggable() {
 
             method == "POST" && path == "/api/settings" -> {
                 updateSettings(body.decodeToString())
-                sendRawResponse(output, 200, "text/plain", "success".encodeToByteArray())
+                sendRawResponse(output, 200, "application/json", settingsJson().encodeToByteArray())
             }
 
             method == "POST" && path == "/api/upload/apk" ->
@@ -294,7 +300,9 @@ object HttpServer : Loggable() {
                 appTitle = Constants.APP_TITLE,
                 appRepo = Constants.APP_REPO,
                 iptvSourceUrl = SP.iptvSourceUrl,
+                iptvSourceUrlHistoryList = SP.iptvSourceUrlHistoryList.toList(),
                 epgXmlUrl = SP.epgXmlUrl,
+                epgXmlUrlHistoryList = SP.epgXmlUrlHistoryList.toList(),
                 videoPlayerUserAgent = SP.videoPlayerUserAgent,
                 logHistory = Logger.history,
             )
@@ -303,22 +311,23 @@ object HttpServer : Loggable() {
 
     private fun updateSettings(body: String) {
         val json = JSONObject(body)
-        val iptvSourceUrl = json.optString("iptvSourceUrl", SP.iptvSourceUrl)
-        val epgXmlUrl = json.optString("epgXmlUrl", SP.epgXmlUrl)
+        val iptvSourceUrl = json.optString("iptvSourceUrl", SP.iptvSourceUrl).trim()
+        val epgXmlUrl = json.optString("epgXmlUrl", SP.epgXmlUrl).trim()
         val videoPlayerUserAgent =
             json.optString("videoPlayerUserAgent", SP.videoPlayerUserAgent)
+        val forceIptvSourceRefresh = json.optLong("iptvSourceCachedAt", -1L) == 0L
+        val forceEpgXmlRefresh = json.optLong("epgXmlCachedAt", -1L) == 0L ||
+            json.optLong("epgCachedHash", -1L) == 0L
 
-        if (SP.iptvSourceUrl != iptvSourceUrl) {
-            SP.iptvSourceUrl = iptvSourceUrl
-            IptvRepository().clearCache()
-        }
-
-        if (SP.epgXmlUrl != epgXmlUrl) {
-            SP.epgXmlUrl = epgXmlUrl
-            EpgRepository().clearCache()
-        }
-
-        SP.videoPlayerUserAgent = videoPlayerUserAgent
+        publishRemoteSettingsUpdate(
+            applyRemoteSettings(
+                iptvSourceUrl = iptvSourceUrl,
+                epgXmlUrl = epgXmlUrl,
+                videoPlayerUserAgent = videoPlayerUserAgent,
+                forceIptvSourceRefresh = forceIptvSourceRefresh,
+                forceEpgXmlRefresh = forceEpgXmlRefresh,
+            )
+        )
     }
 
     private fun registerRoutes(server: AsyncHttpServer, context: Context) {
@@ -388,7 +397,9 @@ object HttpServer : Loggable() {
                         appTitle = Constants.APP_TITLE,
                         appRepo = Constants.APP_REPO,
                         iptvSourceUrl = SP.iptvSourceUrl,
+                        iptvSourceUrlHistoryList = SP.iptvSourceUrlHistoryList.toList(),
                         epgXmlUrl = SP.epgXmlUrl,
+                        epgXmlUrlHistoryList = SP.epgXmlUrlHistoryList.toList(),
                         videoPlayerUserAgent = SP.videoPlayerUserAgent,
                         logHistory = Logger.history,
                     )
@@ -402,23 +413,83 @@ object HttpServer : Loggable() {
         response: AsyncHttpServerResponse,
     ) {
         val body = request.getBody<JSONObjectBody>().get()
-        val iptvSourceUrl = body.get("iptvSourceUrl").toString()
-        val epgXmlUrl = body.get("epgXmlUrl").toString()
+        val iptvSourceUrl = body.get("iptvSourceUrl").toString().trim()
+        val epgXmlUrl = body.get("epgXmlUrl").toString().trim()
         val videoPlayerUserAgent = body.get("videoPlayerUserAgent").toString()
+        val forceIptvSourceRefresh = body.optLong("iptvSourceCachedAt", -1L) == 0L
+        val forceEpgXmlRefresh = body.optLong("epgXmlCachedAt", -1L) == 0L ||
+            body.optLong("epgCachedHash", -1L) == 0L
 
-        if (SP.iptvSourceUrl != iptvSourceUrl) {
+        publishRemoteSettingsUpdate(
+            applyRemoteSettings(
+                iptvSourceUrl = iptvSourceUrl,
+                epgXmlUrl = epgXmlUrl,
+                videoPlayerUserAgent = videoPlayerUserAgent,
+                forceIptvSourceRefresh = forceIptvSourceRefresh,
+                forceEpgXmlRefresh = forceEpgXmlRefresh,
+            )
+        )
+
+        handleGetSettings(response)
+    }
+
+    private fun applyRemoteSettings(
+        iptvSourceUrl: String,
+        epgXmlUrl: String,
+        videoPlayerUserAgent: String,
+        forceIptvSourceRefresh: Boolean = false,
+        forceEpgXmlRefresh: Boolean = false,
+    ): SettingsUpdate {
+        val iptvSourceChanged = SP.iptvSourceUrl != iptvSourceUrl
+        val epgXmlChanged = SP.epgXmlUrl != epgXmlUrl
+        val videoPlayerUserAgentChanged = SP.videoPlayerUserAgent != videoPlayerUserAgent
+
+        if (iptvSourceChanged || forceIptvSourceRefresh) {
             SP.iptvSourceUrl = iptvSourceUrl
+            SP.iptvLastIptvIdx = 0
+            SP.iptvSourceEmbeddedEpgUrl = ""
+            addIptvSourceHistory(iptvSourceUrl)
             IptvRepository().clearCache()
         }
 
-        if (SP.epgXmlUrl != epgXmlUrl) {
+        if (epgXmlChanged || forceEpgXmlRefresh) {
             SP.epgXmlUrl = epgXmlUrl
+            addEpgXmlHistory(epgXmlUrl)
             EpgRepository().clearCache()
         }
 
-        SP.videoPlayerUserAgent = videoPlayerUserAgent
+        if (videoPlayerUserAgentChanged) {
+            SP.videoPlayerUserAgent = videoPlayerUserAgent
+        }
 
-        wrapResponse(response).send("success")
+        return SettingsUpdate(
+            iptvSourceChanged = iptvSourceChanged || forceIptvSourceRefresh,
+            epgXmlChanged = epgXmlChanged || forceEpgXmlRefresh,
+            videoPlayerUserAgentChanged = videoPlayerUserAgentChanged,
+        )
+    }
+
+    private fun addIptvSourceHistory(sourceUrl: String) {
+        sourceUrl
+            .takeIf { it.isNotBlank() && it != Constants.IPTV_SOURCE_URL }
+            ?.let { SP.iptvSourceUrlHistoryList += it }
+    }
+
+    private fun addEpgXmlHistory(xmlUrl: String) {
+        xmlUrl
+            .takeIf { it.isNotBlank() && it != Constants.EPG_XML_URL }
+            ?.let { SP.epgXmlUrlHistoryList += it }
+    }
+
+    fun notifySettingsUpdate(update: SettingsUpdate) {
+        _settingsUpdates.tryEmit(update)
+    }
+
+    private fun publishRemoteSettingsUpdate(update: SettingsUpdate) {
+        notifySettingsUpdate(update)
+        CoroutineScope(Dispatchers.Main).launch {
+            showToast(if (update.hasChanges) "远程配置已更新" else "远程配置已接收")
+        }
     }
 
     private fun handleUploadApk(
@@ -516,12 +587,26 @@ object HttpServer : Loggable() {
     }
 }
 
+data class SettingsUpdate(
+    val iptvSourceChanged: Boolean = false,
+    val epgXmlChanged: Boolean = false,
+    val videoPlayerUserAgentChanged: Boolean = false,
+) {
+    val hasChanges: Boolean
+        get() = iptvSourceChanged || epgXmlChanged || videoPlayerUserAgentChanged
+
+    val requiresReload: Boolean
+        get() = iptvSourceChanged || epgXmlChanged
+}
+
 @Serializable
 private data class AllSettings(
     val appTitle: String,
     val appRepo: String,
     val iptvSourceUrl: String,
+    val iptvSourceUrlHistoryList: List<String>,
     val epgXmlUrl: String,
+    val epgXmlUrlHistoryList: List<String>,
     val videoPlayerUserAgent: String,
 
     val logHistory: List<Logger.HistoryItem>,

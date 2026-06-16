@@ -110,6 +110,9 @@ fun LeanbackMainContent(
         videoPlayerState = videoPlayerState,
         iptvGroupList = iptvGroupList,
     )
+    LaunchedEffect(iptvGroupList) {
+        mainContentState.updateIptvGroupList(iptvGroupList)
+    }
     val panelChannelNoSelectState = rememberLeanbackPanelChannelNoSelectState(
         onChannelNoConfirm = {
             val channelNo = it.toInt() - 1

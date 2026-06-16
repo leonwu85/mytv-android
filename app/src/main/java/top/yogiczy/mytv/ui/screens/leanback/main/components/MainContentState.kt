@@ -26,7 +26,7 @@ import kotlin.math.max
 class LeanbackMainContentState(
     coroutineScope: CoroutineScope,
     private val videoPlayerState: LeanbackVideoPlayerState,
-    private val iptvGroupList: IptvGroupList,
+    private var iptvGroupList: IptvGroupList,
 ) : Loggable() {
     private var _currentIptv by mutableStateOf(Iptv())
     val currentIptv get() = _currentIptv
@@ -107,6 +107,18 @@ class LeanbackMainContentState(
         return iptvGroupList.iptvList.getOrElse(currentIndex + 1) {
             iptvGroupList.firstOrNull()?.iptvList?.firstOrNull() ?: Iptv()
         }
+    }
+
+    fun updateIptvGroupList(value: IptvGroupList) {
+        if (iptvGroupList == value) return
+
+        iptvGroupList = value
+        _isPanelVisible = false
+        _isQuickPanelVisible = false
+
+        changeCurrentIptv(iptvGroupList.iptvList.getOrElse(SP.iptvLastIptvIdx) {
+            iptvGroupList.firstOrNull()?.iptvList?.firstOrNull() ?: Iptv()
+        })
     }
 
     fun changeCurrentIptv(iptv: Iptv, urlIdx: Int? = null) {

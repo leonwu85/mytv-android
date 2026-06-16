@@ -8,13 +8,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsCategories
+import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import top.yogiczy.mytv.utils.Logger
 
 @Composable
 fun LeanbackSettingsCategoryContent(
     modifier: Modifier = Modifier,
     focusedCategoryProvider: () -> LeanbackSettingsCategories = { LeanbackSettingsCategories.entries.first() },
+    settingsViewModel: LeanbackSettingsViewModel = viewModel(),
 ) {
     val focusedCategory = focusedCategoryProvider()
 
@@ -29,18 +32,19 @@ fun LeanbackSettingsCategoryContent(
         )
 
         when (focusedCategory) {
-            LeanbackSettingsCategories.APP -> LeanbackSettingsCategoryApp()
-            LeanbackSettingsCategories.IPTV -> LeanbackSettingsCategoryIptv()
-            LeanbackSettingsCategories.EPG -> LeanbackSettingsCategoryEpg()
-            LeanbackSettingsCategories.UI -> LeanbackSettingsCategoryUI()
-            LeanbackSettingsCategories.FAVORITE -> LeanbackSettingsCategoryFavorite()
-            LeanbackSettingsCategories.MERGE -> LeanbackSettingsCategoryMerge()
-            LeanbackSettingsCategories.VIDEO_PLAYER -> LeanbackSettingsCategoryVideoPlayer()
-            LeanbackSettingsCategories.NETWORK -> LeanbackSettingsCategoryNetwork()
+            LeanbackSettingsCategories.APP -> LeanbackSettingsCategoryApp(settingsViewModel = settingsViewModel)
+            LeanbackSettingsCategories.IPTV -> LeanbackSettingsCategoryIptv(settingsViewModel = settingsViewModel)
+            LeanbackSettingsCategories.EPG -> LeanbackSettingsCategoryEpg(settingsViewModel = settingsViewModel)
+            LeanbackSettingsCategories.UI -> LeanbackSettingsCategoryUI(settingsViewModel = settingsViewModel)
+            LeanbackSettingsCategories.FAVORITE -> LeanbackSettingsCategoryFavorite(settingsViewModel = settingsViewModel)
+            LeanbackSettingsCategories.MERGE -> LeanbackSettingsCategoryMerge(settingsViewModel = settingsViewModel)
+            LeanbackSettingsCategories.VIDEO_PLAYER -> LeanbackSettingsCategoryVideoPlayer(settingsViewModel = settingsViewModel)
+            LeanbackSettingsCategories.NETWORK -> LeanbackSettingsCategoryNetwork(settingsViewModel = settingsViewModel)
             LeanbackSettingsCategories.LOG -> LeanbackSettingsCategoryLog(
+                settingsViewModel = settingsViewModel,
                 history = Logger.history,
             )
-            LeanbackSettingsCategories.ABOUT -> LeanbackSettingsCategoryAbout()
+            LeanbackSettingsCategories.ABOUT -> LeanbackSettingsCategoryAbout(settingsViewModel = settingsViewModel)
         }
     }
 }

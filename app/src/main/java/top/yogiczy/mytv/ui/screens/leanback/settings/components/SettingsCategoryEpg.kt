@@ -40,6 +40,7 @@ import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.HttpServer
 import top.yogiczy.mytv.ui.utils.SP
+import top.yogiczy.mytv.ui.utils.SettingsUpdate
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 import kotlin.math.max
 
@@ -128,6 +129,8 @@ fun LeanbackSettingsCategoryEpg(
                     if (settingsViewModel.epgXmlUrl != it) {
                         settingsViewModel.epgXmlUrl = it
                         coroutineScope.launch { EpgRepository().clearCache() }
+                        HttpServer.notifySettingsUpdate(SettingsUpdate(epgXmlChanged = true))
+                        LeanbackToastState.I.showToast("节目单已切换，正在刷新")
                     }
                 },
                 onDeleted = {

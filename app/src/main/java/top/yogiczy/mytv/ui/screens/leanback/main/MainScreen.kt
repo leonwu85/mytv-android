@@ -54,6 +54,12 @@ fun LeanbackMainScreen(
 ) {
     val uiState by mainViewModel.uiState.collectAsState()
 
+    LaunchedEffect(mainViewModel) {
+        HttpServer.settingsUpdates.collect { update ->
+            if (update.requiresReload) mainViewModel.reload()
+        }
+    }
+
     when (val s = uiState) {
         is LeanbackMainUiState.Ready -> {
             // 只看精选：仅保留包含已收藏频道的“精选”分组

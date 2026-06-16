@@ -159,7 +159,7 @@
                             headers: { 'Content-Type': 'application/json' }
                         })
                         await refreshSettings()
-                        vant.closeToast()
+                        vant.showSuccessToast('推送成功')
                     } catch (e) {
                         vant.showFailToast('无法修改设置')
                         console.error(e)
