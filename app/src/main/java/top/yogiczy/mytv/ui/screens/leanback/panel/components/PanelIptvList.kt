@@ -59,7 +59,7 @@ fun LeanbackPanelIptvList(
     TvLazyRow(
         state = listState,
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(
             start = childPadding.start,
             end = childPadding.end,
@@ -73,6 +73,7 @@ fun LeanbackPanelIptvList(
                         ?.currentProgrammes()?.now
                 },
                 showProgrammeProgressProvider = { showProgrammeProgressProvider() },
+                selectedProvider = { iptv == currentIptvProvider() },
                 onIptvSelected = { onIptvSelected(iptv) },
                 onIptvFavoriteToggle = { onIptvFavoriteToggle(iptv) },
                 onShowEpg = {

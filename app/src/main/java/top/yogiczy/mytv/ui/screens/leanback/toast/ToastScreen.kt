@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -27,8 +28,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.tv.material3.Icon
-import androidx.tv.material3.MaterialTheme
 import kotlinx.coroutines.delay
+import top.yogiczy.mytv.ui.theme.LeanbackGlass
+import top.yogiczy.mytv.ui.theme.LeanbackGlassSurface
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 
 @Composable
@@ -56,26 +58,26 @@ fun LeanbackToastItem(
     modifier: Modifier = Modifier,
     property: LeanbackToastProperty = LeanbackToastProperty(),
 ) {
-    Box(
+    LeanbackGlassSurface(
         modifier = modifier
-            .sizeIn(maxWidth = 556.dp)
-            .background(MaterialTheme.colorScheme.inverseSurface, MaterialTheme.shapes.medium)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .sizeIn(maxWidth = 556.dp),
+        containerColor = LeanbackGlass.OverlayStrong,
     ) {
         Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             LeanbackToastContentIcon(
                 showIcon = true,
                 icon = Icons.Outlined.Info,
-                iconColor = MaterialTheme.colorScheme.inverseOnSurface,
-                iconContainerColors = MaterialTheme.colorScheme.onSurfaceVariant,
+                iconColor = MaterialTheme.colorScheme.background,
+                iconContainerColors = MaterialTheme.colorScheme.primary,
             )
 
             androidx.tv.material3.Text(
                 property.message,
-                color = MaterialTheme.colorScheme.inverseOnSurface
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

@@ -74,6 +74,7 @@ private fun toggleFavorite(
             FavoriteChannel(
                 name = iptv.name,
                 channelName = iptv.channelName,
+                logoUrl = iptv.logoUrl,
                 urlList = iptv.urlList,
                 headers = SP.iptvChannelRequestHeaders,
             )
@@ -314,6 +315,10 @@ fun LeanbackMainContent(
                     (iptvGroupList.iptvIdx(mainContentState.currentIptv) + 1).toString()
                         .padStart(2, '0')
                 },
+                currentIptvFavoriteProvider = {
+                    settingsViewModel.iptvChannelFavoriteList.contains(mainContentState.currentIptv.channelName)
+                },
+                iptvFavoriteEnableProvider = { settingsViewModel.iptvChannelFavoriteEnable },
                 videoPlayerMetadataProvider = { videoPlayerState.metadata },
                 showVideoPlayerMetadataProvider = { settingsViewModel.debugShowVideoPlayerMetadata },
                 videoPlayerAspectRatioProvider = { videoPlayerState.aspectRatio },
@@ -334,6 +339,10 @@ fun LeanbackMainContent(
                         !settingsViewModel.debugShowVideoPlayerMetadata
                     mainContentState.isQuickPanelVisible = false
                 },
+                onIptvFavoriteToggle = {
+                    toggleFavorite(settingsViewModel, mainContentState.currentIptv)
+                    mainContentState.isQuickPanelVisible = false
+                },
                 onClearCache = {
                     settingsViewModel.iptvPlayableHostList = emptySet()
                     coroutineScope.launch {
@@ -349,7 +358,9 @@ fun LeanbackMainContent(
         }
 
         LeanbackVisible({ mainContentState.isSettingsVisible }) {
-            LeanbackSettingsScreen()
+            LeanbackSettingsScreen(
+                channelNameProvider = { mainContentState.currentIptv.name },
+            )
         }
 
         LeanbackVisible({ settingsViewModel.debugShowFps }) {

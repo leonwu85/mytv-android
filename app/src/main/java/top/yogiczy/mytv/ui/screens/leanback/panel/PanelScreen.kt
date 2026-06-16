@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -43,7 +44,10 @@ import top.yogiczy.mytv.ui.screens.leanback.panel.components.LeanbackPanelIptvIn
 import top.yogiczy.mytv.ui.screens.leanback.panel.components.LeanbackPanelPlayerInfo
 import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
 import top.yogiczy.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
+import top.yogiczy.mytv.ui.theme.LeanbackGlass
+import top.yogiczy.mytv.ui.theme.LeanbackGlassSurface
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
+import top.yogiczy.mytv.ui.theme.leanbackBottomScrim
 
 @Composable
 fun LeanbackPanelScreen(
@@ -74,9 +78,16 @@ fun LeanbackPanelScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
             .pointerInput(Unit) { detectTapGestures(onTap = { onClose() }) },
     ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(430.dp)
+                .leanbackBottomScrim(),
+        )
+
         LeanbackPanelScreenTopRight(
             channelNoProvider = {
                 (iptvGroupListProvider().iptvIdx(currentIptvProvider()) + 1).toString()
@@ -121,12 +132,12 @@ fun LeanbackPanelScreenTopRight(
         ) {
             LeanbackPanelChannelNo(channelNoProvider = channelNoProvider)
 
-            Box(modifier = Modifier.padding(horizontal = 8.dp)) {
+            Box(modifier = Modifier.padding(horizontal = 10.dp)) {
                 Spacer(
                     modifier = Modifier
-                        .background(Color.White)
-                        .width(2.dp)
-                        .height(30.dp),
+                        .background(Color.White.copy(alpha = 0.54f))
+                        .width(1.dp)
+                        .height(34.dp),
                 )
             }
 
@@ -157,23 +168,36 @@ private fun LeanbackPanelScreenBottom(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.align(Alignment.BottomStart),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(bottom = childPadding.bottom),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            LeanbackPanelIptvInfo(
-                modifier = Modifier
-                    .padding(start = childPadding.start),
-                iptvProvider = currentIptvProvider,
-                iptvUrlIdxProvider = currentIptvUrlIdxProvider,
-                currentProgrammesProvider = {
-                    epgListProvider().currentProgrammes(currentIptvProvider())
-                }
-            )
-
-            LeanbackPanelPlayerInfo(
+            Row(
                 modifier = Modifier.padding(start = childPadding.start),
-                metadataProvider = videoPlayerMetadataProvider
-            )
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                LeanbackPanelIptvInfo(
+                    modifier = Modifier.width(540.dp),
+                    iptvProvider = currentIptvProvider,
+                    iptvUrlIdxProvider = currentIptvUrlIdxProvider,
+                    favoriteProvider = {
+                        iptvFavoriteListProvider().contains(currentIptvProvider().channelName)
+                    },
+                    currentProgrammesProvider = {
+                        epgListProvider().currentProgrammes(currentIptvProvider())
+                    },
+                    programmeProgressProvider = {
+                        if (showProgrammeProgressProvider()) null else Float.NaN
+                    },
+                )
+
+                LeanbackPanelPlayerInfo(
+                    modifier = Modifier.padding(bottom = 2.dp),
+                    metadataProvider = videoPlayerMetadataProvider,
+                )
+            }
 
             LeanbackPanelScreenBottomIptvList(
                 iptvGroupListProvider = iptvGroupListProvider,
@@ -211,8 +235,17 @@ fun LeanbackPanelScreenBottomIptvList(
 ) {
     val iptvFavoriteEnable = iptvFavoriteEnableProvider()
     var favoriteListVisible by remember { mutableStateOf(iptvFavoriteListVisibleProvider()) }
+    val childPadding = rememberLeanbackChildPadding()
 
-    Box(modifier = modifier.height(150.dp)) {
+    LeanbackGlassSurface(
+        modifier = modifier
+            .padding(start = childPadding.start, end = childPadding.end)
+            .fillMaxWidth()
+            .height(252.dp),
+        containerColor = LeanbackGlass.Panel,
+        borderColor = LeanbackGlass.Stroke,
+    ) {
+        Box(modifier = Modifier.fillMaxSize().padding(top = 18.dp)) {
         if (favoriteListVisible)
             LeanbackPanelIptvFavoriteList(
                 iptvListProvider = {
@@ -254,6 +287,7 @@ fun LeanbackPanelScreenBottomIptvList(
                 },
                 onUserAction = onUserAction,
             )
+        }
     }
 }
 

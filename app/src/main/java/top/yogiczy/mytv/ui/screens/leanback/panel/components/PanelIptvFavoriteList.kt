@@ -111,6 +111,7 @@ fun LeanbackPanelIptvFavoriteList(
                             ?.currentProgrammes()?.now
                     },
                     showProgrammeProgressProvider = { showProgrammeProgressProvider() },
+                    selectedProvider = { iptv == currentIptvProvider() },
                     onIptvSelected = { onIptvSelected(iptv) },
                     onIptvFavoriteToggle = {
                         key++

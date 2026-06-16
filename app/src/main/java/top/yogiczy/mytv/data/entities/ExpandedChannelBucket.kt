@@ -32,6 +32,7 @@ data class ExpandedChannelBucket(
 data class ExpandedChannel(
     val name: String = "",
     val channelName: String = "",
+    val logoUrl: String = "",
     val urlList: List<String> = emptyList(),
     /** 播放该频道用的请求头（User-Agent 等） */
     val headers: String = "",
@@ -46,6 +47,7 @@ data class ExpandedChannel(
 data class FavoriteChannel(
     val name: String = "",
     val channelName: String = "",
+    val logoUrl: String = "",
     val urlList: List<String> = emptyList(),
     val headers: String = "",
 )

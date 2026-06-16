@@ -21,6 +21,7 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.hls.HlsDataSourceFactory
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.rtsp.RtspMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
@@ -80,23 +81,33 @@ class LeanbackMedia3VideoPlayer(
         }
 
         // 分片磁盘缓存：开启时用 CacheDataSource 包一层，出错时自动回退到上游直连
-        val upstreamFactory =
+        val cacheDataSourceFactory =
             if (SP.videoPlayerSegmentDiskCacheEnable) {
                 CacheDataSource.Factory()
                     .setCache(VideoCache.get(context))
                     .setUpstreamDataSourceFactory(httpFactory)
                     .setFlags(CACHE_FLAGS)
             } else {
-                httpFactory
+                null
             }
 
-        val dataSourceFactory = DefaultDataSource.Factory(context, upstreamFactory)
+        val directDataSourceFactory = DefaultDataSource.Factory(context, httpFactory)
+        val dataSourceFactory = cacheDataSourceFactory
+            ?.let { DefaultDataSource.Factory(context, it) }
+            ?: directDataSourceFactory
 
         val mediaItem = MediaItem.fromUri(uri)
 
         val mediaSource = when (val type = contentType ?: Util.inferContentType(uri)) {
             C.CONTENT_TYPE_HLS -> {
-                HlsMediaSource.Factory(dataSourceFactory)
+                HlsMediaSource.Factory(
+                    cacheDataSourceFactory?.let {
+                        buildHlsSegmentCacheDataSourceFactory(
+                            directDataSourceFactory = directDataSourceFactory,
+                            cachedDataSourceFactory = dataSourceFactory,
+                        )
+                    } ?: HlsDataSourceFactory { directDataSourceFactory.createDataSource() }
+                )
                     .setExtractorFactory(Av3aHlsExtractorFactory())
                     .createMediaSource(mediaItem)
             }
@@ -133,6 +144,18 @@ class LeanbackMedia3VideoPlayer(
         }
         updatePositionJob?.cancel()
         updatePositionJob = null
+    }
+
+    private fun buildHlsSegmentCacheDataSourceFactory(
+        directDataSourceFactory: DefaultDataSource.Factory,
+        cachedDataSourceFactory: DefaultDataSource.Factory,
+    ): HlsDataSourceFactory = HlsDataSourceFactory { dataType ->
+        when (dataType) {
+            C.DATA_TYPE_MEDIA,
+            C.DATA_TYPE_MEDIA_INITIALIZATION -> cachedDataSourceFactory.createDataSource()
+
+            else -> directDataSourceFactory.createDataSource()
+        }
     }
 
     private val playerListener = object : Player.Listener {

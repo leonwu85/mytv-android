@@ -37,6 +37,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.IOException
 import top.yogiczy.mytv.data.entities.Iptv
+import top.yogiczy.mytv.ui.theme.LeanbackGlass
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 import top.yogiczy.mytv.utils.isIPv6
@@ -60,6 +61,10 @@ fun LeanbackQuickPanelIptvChannelsDialog(
         AlertDialog(
             modifier = modifier,
             onDismissRequest = onDismissRequest,
+            shape = MaterialTheme.shapes.medium,
+            containerColor = LeanbackGlass.OverlayStrong,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurface,
             confirmButton = { Text(text = "短按切换线路") },
             title = { Text(text = iptv.name) },
             text = {

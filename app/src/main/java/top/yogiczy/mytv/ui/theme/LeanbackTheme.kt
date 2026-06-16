@@ -1,48 +1,58 @@
 package top.yogiczy.mytv.ui.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 private val darkColorScheme
     @Composable get() = darkColorScheme(
-        // 暗色主题：紫系 Material3 基准调色板
-        primary = Color(0xFFD0BCFF),
-        onPrimary = Color(0xFF381E72),
-        primaryContainer = Color(0xFF4F378B),
-        onPrimaryContainer = Color(0xFFEADDFF),
-        inversePrimary = Color(0xFF6750A4),
-        secondary = Color(0xFFCCC2DC),
-        onSecondary = Color(0xFF332D41),
-        secondaryContainer = Color(0xFF4A4458),
-        onSecondaryContainer = Color(0xFFE8DEF8),
-        tertiary = Color(0xFFEFB8C8),
-        onTertiary = Color(0xFF492532),
-        tertiaryContainer = Color(0xFF633B48),
-        onTertiaryContainer = Color(0xFFFFD8E4),
-        background = Color(0xFF1C1B1F),
-        onBackground = Color(0xFFE6E1E5),
-        surface = Color(0xFF1C1B1F),
-        onSurface = Color(0xFFE6E1E5),
-        surfaceVariant = Color(0xFF49454F),
-        onSurfaceVariant = Color(0xFFCAC4D0),
-        surfaceTint = Color(0xFFD0BCFF),
-        outline = Color(0xFF938F99),
-        outlineVariant = Color(0xFF49454F),
-        error = Color(0xFFF2B8B5),
-        onError = Color(0xFF601410),
-        errorContainer = Color(0xFF8C1D18),
-        onErrorContainer = Color(0xFFF9DEDC),
+        primary = Color(0xFF27C4FF),
+        onPrimary = Color(0xFF001F2B),
+        primaryContainer = Color(0xFF08384A),
+        onPrimaryContainer = Color(0xFFC6F1FF),
+        inversePrimary = Color(0xFF006786),
+        secondary = Color(0xFFB8C7D9),
+        onSecondary = Color(0xFF203141),
+        secondaryContainer = Color(0xFF253648),
+        onSecondaryContainer = Color(0xFFD8E8FA),
+        tertiary = Color(0xFF75F18B),
+        onTertiary = Color(0xFF003913),
+        tertiaryContainer = Color(0xFF0E4E24),
+        onTertiaryContainer = Color(0xFFB9F8C3),
+        background = Color(0xFF05070A),
+        onBackground = Color(0xFFF4F8FF),
+        surface = Color(0xFF0B0F14),
+        onSurface = Color(0xFFF4F8FF),
+        surfaceVariant = Color(0xFF1B242E),
+        onSurfaceVariant = Color(0xFFC2CCD8),
+        surfaceTint = Color(0xFF27C4FF),
+        outline = Color(0xFF6E7A89),
+        outlineVariant = Color(0xFF27313D),
+        error = Color(0xFFFFB4AB),
+        onError = Color(0xFF690005),
+        errorContainer = Color(0xFF93000A),
+        onErrorContainer = Color(0xFFFFDAD6),
         scrim = Color(0xFF000000),
-        surfaceContainer = Color(0xFF211F26),
-        surfaceContainerHigh = Color(0xFF2B2930),
-        surfaceContainerHighest = Color(0xFF36343B),
-        surfaceContainerLow = Color(0xFF1D1B22),
-        surfaceContainerLowest = Color(0xFF161319),
+        surfaceContainer = Color(0xFF10161D),
+        surfaceContainerHigh = Color(0xFF151D26),
+        surfaceContainerHighest = Color(0xFF1B2530),
+        surfaceContainerLow = Color(0xFF090D12),
+        surfaceContainerLowest = Color(0xFF030507),
     )
+
+private val leanbackShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(8.dp),
+    large = RoundedCornerShape(8.dp),
+    extraLarge = RoundedCornerShape(8.dp),
+)
 
 @Composable
 fun LeanbackTheme(
@@ -50,6 +60,7 @@ fun LeanbackTheme(
 ) {
     MaterialTheme(
         colorScheme = darkColorScheme,
+        shapes = leanbackShapes,
     ) {
         androidx.tv.material3.MaterialTheme(
             androidx.tv.material3.darkColorScheme(

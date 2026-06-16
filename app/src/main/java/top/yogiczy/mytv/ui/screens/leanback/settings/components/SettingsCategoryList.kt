@@ -1,9 +1,19 @@
 package top.yogiczy.mytv.ui.screens.leanback.settings.components
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -20,11 +30,14 @@ import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.itemsIndexed
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsCategories
+import top.yogiczy.mytv.ui.theme.LeanbackGlass
+import top.yogiczy.mytv.ui.theme.LeanbackGlassSurface
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 
@@ -38,8 +51,8 @@ fun LeanbackSettingsCategoryList(
     var hasFocused = rememberSaveable { false }
 
     TvLazyColumn(
-        contentPadding = PaddingValues(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(vertical = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier.focusRestorer()
     ) {
         itemsIndexed(LeanbackSettingsCategories.entries) { index, category ->
@@ -74,13 +87,25 @@ private fun LeanbackSettingsCategoryItem(
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
     var isFocused by remember { mutableStateOf(false) }
+    val isSelected = isSelectedProvider()
+    val contentColor = MaterialTheme.colorScheme.onSurface
 
-    androidx.tv.material3.ListItem(
-        selected = isSelectedProvider(),
-        onClick = { },
-        leadingContent = { androidx.tv.material3.Icon(icon, title) },
-        headlineContent = { androidx.tv.material3.Text(text = title) },
+    LeanbackGlassSurface(
+        focused = isFocused,
+        selected = isSelected,
+        containerColor = when {
+            isFocused -> LeanbackGlass.FocusContainer
+            isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+            else -> LeanbackGlass.OverlaySoft
+        },
+        borderColor = when {
+            isFocused -> LeanbackGlass.Focus
+            isSelected -> LeanbackGlass.Focus.copy(alpha = 0.56f)
+            else -> LeanbackGlass.StrokeSoft
+        },
+        contentColor = contentColor,
         modifier = modifier
+            .fillMaxWidth()
             .focusRequester(focusRequester)
             .onFocusChanged {
                 isFocused = it.isFocused || it.hasFocus
@@ -93,8 +118,28 @@ private fun LeanbackSettingsCategoryItem(
                     if (isFocused) focusManager.moveFocus(FocusDirection.Right)
                     else focusRequester.requestFocus()
                 }
-            ),
-    )
+            )
+            .focusable(),
+    ) {
+        CompositionLocalProvider(LocalContentColor provides contentColor) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = contentColor,
+                    modifier = Modifier.size(22.dp),
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
+                )
+            }
+        }
+    }
 }
 
 @Preview

@@ -10,6 +10,7 @@ import okhttp3.Request
 import org.xmlpull.v1.XmlPullParser
 import top.yogiczy.mytv.data.entities.Epg
 import top.yogiczy.mytv.data.entities.EpgList
+import top.yogiczy.mytv.data.entities.EpgList.Companion.normalizedChannelKey
 import top.yogiczy.mytv.data.entities.EpgProgramme
 import top.yogiczy.mytv.data.entities.EpgProgrammeList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
@@ -46,17 +47,18 @@ class EpgRepository : FileCacheRepository("epg.json") {
             when (eventType) {
                 XmlPullParser.START_TAG -> {
                     if (parser.name == "channel") {
-                        val channelId = parser.getAttributeValue(null, "id")
+                        val channelId = parser.getAttributeValue(null, "id").orEmpty()
                         parser.nextTag()
                         val channelName = parser.nextText()
+                        val matchedChannel = matchFilteredChannel(channelId, channelName, filteredChannels)
 
-                        if (filteredChannels.isEmpty() || filteredChannels.contains(channelName)) {
-                            epgMap[channelId] = Epg(channelName, EpgProgrammeList())
+                        if (matchedChannel != null) {
+                            epgMap[channelId] = Epg(matchedChannel, EpgProgrammeList())
                         }
                     } else if (parser.name == "programme") {
-                        val channelId = parser.getAttributeValue(null, "channel")
-                        val startTime = parser.getAttributeValue(null, "start")
-                        val stopTime = parser.getAttributeValue(null, "stop")
+                        val channelId = parser.getAttributeValue(null, "channel").orEmpty()
+                        val startTime = parser.getAttributeValue(null, "start").orEmpty()
+                        val stopTime = parser.getAttributeValue(null, "stop").orEmpty()
                         parser.nextTag()
                         val title = parser.nextText()
 
@@ -89,6 +91,23 @@ class EpgRepository : FileCacheRepository("epg.json") {
 
         log.i("解析节目单完成，共${epgMap.size}个频道")
         return@withContext EpgList(epgMap.values.toList())
+    }
+
+    private fun matchFilteredChannel(
+        channelId: String,
+        channelName: String,
+        filteredChannels: List<String>,
+    ): String? {
+        if (filteredChannels.isEmpty()) return channelName
+
+        val normalizedChannelId = channelId.normalizedChannelKey()
+        val normalizedChannelName = channelName.normalizedChannelKey()
+        return filteredChannels.firstOrNull { channel ->
+            channel.equals(channelId, ignoreCase = true) ||
+                channel.equals(channelName, ignoreCase = true) ||
+                channel.normalizedChannelKey() == normalizedChannelId ||
+                channel.normalizedChannelKey() == normalizedChannelName
+        }
     }
 
     suspend fun getEpgList(

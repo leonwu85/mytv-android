@@ -1,7 +1,6 @@
 package top.yogiczy.mytv.ui.screens.leanback.components
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -22,18 +21,19 @@ import io.github.alexzhirkevich.qrose.options.QrShapes
 import io.github.alexzhirkevich.qrose.options.circle
 import io.github.alexzhirkevich.qrose.options.roundCorners
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
+import top.yogiczy.mytv.ui.theme.LeanbackGlass
+import top.yogiczy.mytv.ui.theme.LeanbackGlassSurface
 
 @Composable
 fun LeanbackQrcode(
     modifier: Modifier = Modifier,
     text: String,
 ) {
-    Box(
+    LeanbackGlassSurface(
         modifier = modifier
-            .background(
-                color = MaterialTheme.colorScheme.onBackground,
-                shape = MaterialTheme.shapes.medium,
-            )
+            .padding(0.dp),
+        containerColor = MaterialTheme.colorScheme.onBackground,
+        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.54f),
     ) {
         Image(
             modifier = Modifier
@@ -66,6 +66,10 @@ fun LeanbackQrcodeDialog(
             modifier = modifier,
             properties = DialogProperties(usePlatformDefaultWidth = false),
             onDismissRequest = onDismissRequest,
+            shape = MaterialTheme.shapes.medium,
+            containerColor = LeanbackGlass.OverlayStrong,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurface,
             confirmButton = { description?.let { Text(text = description) } },
             text = {
                 LeanbackQrcode(

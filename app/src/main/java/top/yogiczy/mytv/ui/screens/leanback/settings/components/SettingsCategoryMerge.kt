@@ -98,6 +98,7 @@ private fun updateExpandedChannelBuckets(settingsViewModel: LeanbackSettingsView
             top.yogiczy.mytv.data.entities.ExpandedChannel(
                 name = it.name,
                 channelName = it.channelName,
+                logoUrl = it.logoUrl,
                 urlList = it.urlList,
                 headers = it.headers,
             )

@@ -12,6 +12,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.DialogProperties
 import top.yogiczy.mytv.data.entities.GitRelease
+import top.yogiczy.mytv.ui.theme.LeanbackGlass
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 
@@ -35,6 +36,10 @@ fun LeanbackUpdateDialog(
             properties = DialogProperties(usePlatformDefaultWidth = false),
             modifier = modifier,
             onDismissRequest = onDismissRequest,
+            shape = androidx.compose.material3.MaterialTheme.shapes.medium,
+            containerColor = LeanbackGlass.OverlayStrong,
+            titleContentColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
+            textContentColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
             confirmButton = {
                 androidx.tv.material3.Button(
                     onClick = {},

@@ -90,6 +90,7 @@ class LeanbackMainViewModel : ViewModel() {
                             Iptv(
                                 name = ch.name,
                                 channelName = ch.channelName,
+                                logoUrl = ch.logoUrl,
                                 urlList = ch.urlList,
                             )
                         }

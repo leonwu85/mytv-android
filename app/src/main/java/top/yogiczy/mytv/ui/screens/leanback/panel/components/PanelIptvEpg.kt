@@ -34,6 +34,7 @@ import top.yogiczy.mytv.data.entities.EpgProgramme
 import top.yogiczy.mytv.data.entities.EpgProgramme.Companion.isLive
 import top.yogiczy.mytv.data.entities.EpgProgrammeList
 import top.yogiczy.mytv.data.entities.Iptv
+import top.yogiczy.mytv.ui.theme.LeanbackGlass
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
 import java.text.SimpleDateFormat
@@ -56,6 +57,10 @@ fun LeanbackPanelIptvEpgDialog(
         AlertDialog(
             modifier = modifier,
             onDismissRequest = onDismissRequest,
+            shape = MaterialTheme.shapes.medium,
+            containerColor = LeanbackGlass.OverlayStrong,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurface,
             confirmButton = { Text(text = "左右切换频道") },
             title = { Text(iptv.channelName) },
             text = {

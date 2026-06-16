@@ -18,6 +18,11 @@ data class Iptv(
     val channelName: String = "",
 
     /**
+     * 频道台标地址
+     */
+    val logoUrl: String = "",
+
+    /**
      * 播放地址
      */
     val urlList: List<String> = emptyList(),

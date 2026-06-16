@@ -4,22 +4,24 @@ import android.net.TrafficStats
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AspectRatio
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import top.yogiczy.mytv.ui.screens.leanback.video.player.LeanbackVideoPlayer
+import top.yogiczy.mytv.ui.theme.LeanbackGlass
+import top.yogiczy.mytv.ui.theme.LeanbackStatusChip
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import java.text.DecimalFormat
 
@@ -28,47 +30,44 @@ fun LeanbackPanelPlayerInfo(
     modifier: Modifier = Modifier,
     metadataProvider: () -> LeanbackVideoPlayer.Metadata = { LeanbackVideoPlayer.Metadata() },
 ) {
-    CompositionLocalProvider(
-        LocalTextStyle provides MaterialTheme.typography.bodyLarge,
-        LocalContentColor provides MaterialTheme.colorScheme.onBackground
-    ) {
-        Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            PanelPlayerInfoResolution(
-                resolutionProvider = {
-                    val metadata = metadataProvider()
-                    metadata.videoWidth to metadata.videoHeight
-                }
-            )
+    val metadata = metadataProvider()
+    val netSpeed = rememberNetSpeed()
 
-            PanelPlayerInfoNetSpeed()
-        }
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LeanbackStatusChip(
+            text = metadata.formatResolution(),
+            icon = Icons.Default.AspectRatio,
+            active = metadata.videoWidth > 0 && metadata.videoHeight > 0,
+            accentColor = LeanbackGlass.Warning,
+        )
+
+        LeanbackStatusChip(
+            text = netSpeed.formatNetSpeed(),
+            icon = Icons.Default.Wifi,
+            active = netSpeed > 0,
+            accentColor = if (netSpeed > 0) LeanbackGlass.Warning else MaterialTheme.colorScheme.primary,
+        )
     }
 }
 
-@Composable
-private fun PanelPlayerInfoResolution(
-    modifier: Modifier = Modifier,
-    resolutionProvider: () -> Pair<Int, Int> = { 0 to 0 },
-) {
-    val resolution = resolutionProvider()
+private fun LeanbackVideoPlayer.Metadata.formatResolution(): String =
+    if (videoWidth <= 0 || videoHeight <= 0) {
+        "清晰度 --"
+    } else {
+        buildString {
+            append(videoHeight)
+            append("P")
+            if (videoWidth >= 3840 || videoHeight >= 2160) append(" 4K")
+        }
+    }
 
-    Text(
-        text = "分辨率：${resolution.first}×${resolution.second}",
-        modifier = modifier,
-    )
-}
-
-@Composable
-private fun PanelPlayerInfoNetSpeed(
-    modifier: Modifier = Modifier,
-    netSpeed: Long = rememberNetSpeed(),
-) {
-    Text(
-        text = if (netSpeed < 1024 * 999) "网速：${netSpeed / 1024}KB/s"
-        else "网速：${DecimalFormat("#.#").format(netSpeed / 1024 / 1024f)}MB/s",
-        modifier = modifier,
-    )
-}
+private fun Long.formatNetSpeed(): String =
+    if (this < 1024 * 999) "${this / 1024}KB/s"
+    else "${DecimalFormat("#.#").format(this / 1024 / 1024f)}MB/s"
 
 @Composable
 private fun rememberNetSpeed(): Long {
@@ -100,8 +99,8 @@ private fun LeanbackPanelPlayerInfoPreview() {
         LeanbackPanelPlayerInfo(
             metadataProvider = {
                 LeanbackVideoPlayer.Metadata(
-                    videoWidth = 1920,
-                    videoHeight = 1080,
+                    videoWidth = 3840,
+                    videoHeight = 2160,
                 )
             },
         )
@@ -113,9 +112,9 @@ private fun LeanbackPanelPlayerInfoPreview() {
 private fun LeanbackPanelPlayerInfoNetSpeedPreview() {
     LeanbackTheme {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            PanelPlayerInfoNetSpeed()
-            PanelPlayerInfoNetSpeed(netSpeed = 54321)
-            PanelPlayerInfoNetSpeed(netSpeed = 1222 * 1222)
+            LeanbackStatusChip(text = 0L.formatNetSpeed())
+            LeanbackStatusChip(text = 54321L.formatNetSpeed(), active = true)
+            LeanbackStatusChip(text = (1222L * 1222L).formatNetSpeed(), active = true)
         }
     }
 }
