@@ -84,6 +84,25 @@ fun LeanbackSettingsCategoryEpg(
         }
 
         item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "节目单 User-Agent",
+                supportingContent = settingsViewModel.epgXmlRequestHeaders.ifBlank { "未设置" },
+                trailingContent = if (settingsViewModel.epgXmlRequestHeaders.isBlank()) "默认" else "已设置",
+                remoteConfig = true,
+            )
+        }
+
+        item {
+            val embedded = settingsViewModel.iptvSourceEmbeddedEpgUrl
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "直播源内置 EPG",
+                supportingContent = embedded.ifBlank { "未从当前直播源解析到内嵌 EPG 地址" },
+                trailingContent = if (embedded.isBlank()) "无" else "已解析",
+                onSelected = { },
+            )
+        }
+
+        item {
             var showDialog by remember { mutableStateOf(false) }
 
             LeanbackSettingsCategoryListItem(

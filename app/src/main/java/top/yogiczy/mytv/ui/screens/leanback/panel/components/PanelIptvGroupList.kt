@@ -41,6 +41,7 @@ fun LeanbackPanelIptvGroupList(
     onIptvSelected: (Iptv) -> Unit = {},
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
     onToFavorite: () -> Unit = {},
+    onGroupHidden: (String) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val iptvGroupList = iptvGroupListProvider()
@@ -63,7 +64,11 @@ fun LeanbackPanelIptvGroupList(
     ) {
         itemsIndexed(iptvGroupList) { index, iptvGroup ->
             Row(
-                modifier = Modifier.padding(start = childPadding.start),
+                modifier = Modifier
+                    .padding(start = childPadding.start)
+                    .handleLeanbackKeyEvents(
+                        onLongSelect = { onGroupHidden(iptvGroup.name) },
+                    ),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 CompositionLocalProvider(

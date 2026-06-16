@@ -120,6 +120,60 @@ fun LeanbackSettingsCategoryIptv(
         }
 
         item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "拉取订阅 User-Agent",
+                supportingContent = settingsViewModel.iptvSourceRequestHeaders.ifBlank { "未设置" },
+                trailingContent = if (settingsViewModel.iptvSourceRequestHeaders.isBlank()) "默认" else "已设置",
+                remoteConfig = true,
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "播放频道 User-Agent",
+                supportingContent = settingsViewModel.iptvChannelRequestHeaders.ifBlank { "默认跟随拉取订阅 UA" },
+                trailingContent = if (settingsViewModel.iptvChannelRequestHeaders.isBlank()) "默认" else "已设置",
+                remoteConfig = true,
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "直播源内置优先",
+                supportingContent = if (settingsViewModel.iptvSourceEmbeddedEpgPriority)
+                    "当 m3u 内含 x-tvg-url / url-tvg 时，优先用内置 EPG 地址"
+                else "使用全局节目单地址",
+                trailingContent = {
+                    Switch(
+                        checked = settingsViewModel.iptvSourceEmbeddedEpgPriority,
+                        onCheckedChange = null
+                    )
+                },
+                onSelected = {
+                    settingsViewModel.iptvSourceEmbeddedEpgPriority =
+                        !settingsViewModel.iptvSourceEmbeddedEpgPriority
+                },
+            )
+        }
+
+        item {
+            val hiddenCount = settingsViewModel.iptvHiddenGroupNames.size
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "恢复已隐藏分组",
+                supportingContent = if (hiddenCount > 0)
+                    "当前已隐藏 ${hiddenCount} 个分组，短按全部恢复显示"
+                else "当前没有已隐藏的分组",
+                trailingContent = if (hiddenCount > 0) "${hiddenCount}个" else "无",
+                onSelected = {
+                    if (hiddenCount > 0) {
+                        settingsViewModel.iptvHiddenGroupNames = emptySet()
+                        LeanbackToastState.I.showToast("已恢复全部隐藏分组")
+                    }
+                },
+            )
+        }
+
+        item {
             var showDialog by remember { mutableStateOf(false) }
 
             LeanbackSettingsCategoryListItem(

@@ -44,7 +44,8 @@ fun LeanbackSettingsCategoryListItem(
         selected = false,
         onClick = { },
         colors = ListItemDefaults.colors(
-            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp),
+            // 内容项为带轻微抬升的卡片背景
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
         ),
         headlineContent = {
             androidx.tv.material3.Text(text = headlineContent)

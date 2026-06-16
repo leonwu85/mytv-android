@@ -59,7 +59,7 @@ object HttpServer : Loggable() {
     private var showToast: (String) -> Unit = { }
 
     val serverUrl: String
-        get() = "http://${getLocalIpAddress()}:${activeServerPort}"
+        get() = "http://${SP.httpServerAdvertiseIp.ifBlank { getLocalIpAddress() }}:${activeServerPort}"
 
     fun start(context: Context, showToast: (String) -> Unit) {
         HttpServer.showToast = showToast

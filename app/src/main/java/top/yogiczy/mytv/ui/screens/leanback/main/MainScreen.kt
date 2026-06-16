@@ -33,11 +33,15 @@ import io.github.alexzhirkevich.qrose.options.QrShapes
 import io.github.alexzhirkevich.qrose.options.circle
 import io.github.alexzhirkevich.qrose.options.roundCorners
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
+import top.yogiczy.mytv.data.entities.IptvGroup
+import top.yogiczy.mytv.data.entities.IptvGroupList
+import top.yogiczy.mytv.data.entities.IptvList
 import top.yogiczy.mytv.ui.rememberLeanbackChildPadding
 import top.yogiczy.mytv.ui.screens.leanback.components.LeanbackVisible
 import top.yogiczy.mytv.ui.screens.leanback.main.components.LeanbackBackPressHandledArea
 import top.yogiczy.mytv.ui.screens.leanback.main.components.LeanbackMainContent
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsScreen
+import top.yogiczy.mytv.ui.utils.SP
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.ui.utils.HttpServer
 import top.yogiczy.mytv.ui.utils.handleLeanbackKeyEvents
@@ -51,18 +55,35 @@ fun LeanbackMainScreen(
     val uiState by mainViewModel.uiState.collectAsState()
 
     when (val s = uiState) {
-        is LeanbackMainUiState.Ready -> LeanbackMainContent(
-            modifier = modifier,
-            iptvGroupList = s.iptvGroupList,
-            epgList = s.epgList,
-            onBackPressed = onBackPressed,
-        )
+        is LeanbackMainUiState.Ready -> {
+            // 只看精选：仅保留包含已收藏频道的“精选”分组
+            val effectiveGroupList = if (SP.iptvChannelFavoritesOnlyMode) {
+                val favorites = SP.iptvChannelFavoriteList
+                IptvGroupList(s.iptvGroupList.map { group ->
+                    IptvGroup(
+                        name = group.name,
+                        iptvList = IptvList(group.iptvList.filter { it.channelName in favorites }),
+                    )
+                }.filter { it.iptvList.isNotEmpty() })
+            } else s.iptvGroupList
+
+            LeanbackMainContent(
+                modifier = modifier,
+                iptvGroupList = effectiveGroupList,
+                epgList = s.epgList,
+                onBackPressed = onBackPressed,
+            )
+        }
 
         is LeanbackMainUiState.Loading -> LeanbackMainSettingsHandle(onBackPressed = onBackPressed) {
             LeanbackMainScreenLoading { s.message }
         }
 
-        is LeanbackMainUiState.Error -> LeanbackMainSettingsHandle(onBackPressed = onBackPressed) {
+        is LeanbackMainUiState.Error -> LeanbackMainSettingsHandle(
+            onBackPressed = onBackPressed,
+            autoOpenSettings = s.isSourceNotConfigured,
+            onSettingsDismiss = { mainViewModel.reload() },
+        ) {
             LeanbackMainScreenError({ s.message })
         }
     }
@@ -190,6 +211,8 @@ private fun LeanbackMainScreenErrorLongPreview() {
 private fun LeanbackMainSettingsHandle(
     modifier: Modifier = Modifier,
     onBackPressed: () -> Unit = {},
+    autoOpenSettings: Boolean = false,
+    onSettingsDismiss: () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -199,7 +222,18 @@ private fun LeanbackMainSettingsHandle(
         focusRequester.requestFocus()
     }
 
-    LeanbackBackPressHandledArea(onBackPressed = onBackPressed) {
+    // 直播源未配置时，自动跳转设置页
+    LaunchedEffect(autoOpenSettings) {
+        if (autoOpenSettings) showSettings = true
+    }
+
+    LeanbackBackPressHandledArea(onBackPressed = {
+        // 设置页打开时，返回键先关闭设置页（而非退出）
+        if (showSettings) {
+            showSettings = false
+            onSettingsDismiss()
+        } else onBackPressed()
+    }) {
         Box(
             modifier = modifier
                 .focusRequester(focusRequester)

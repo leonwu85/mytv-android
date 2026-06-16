@@ -14,6 +14,7 @@ import top.yogiczy.mytv.data.entities.EpgProgramme
 import top.yogiczy.mytv.data.entities.EpgProgrammeList
 import top.yogiczy.mytv.data.repositories.FileCacheRepository
 import top.yogiczy.mytv.data.repositories.epg.fetcher.EpgFetcher
+import top.yogiczy.mytv.ui.utils.SP
 import top.yogiczy.mytv.utils.Logger
 import java.io.StringReader
 import java.text.SimpleDateFormat
@@ -131,12 +132,22 @@ private class EpgXmlRepository : FileCacheRepository("epg.xml") {
         log.d("获取远程节目单xml: $url")
 
         val client = OkHttpClient()
-        val request = Request.Builder().url(url).build()
+        // 节目单 User-Agent：仅当用户配置非空时附加
+        val request = Request.Builder().url(url).apply {
+            SP.epgXmlRequestHeaders.trim().takeIf { it.isNotBlank() }?.let { ua ->
+                header("User-Agent", ua)
+            }
+        }.build()
 
         try {
             with(client.newCall(request).execute()) {
                 if (!isSuccessful) {
                     throw Exception("获取远程节目单xml失败: $code")
+                }
+
+                val contentLength = body?.contentLength() ?: -1
+                if (SP.debugAppLog) {
+                    log.i("HTTP GET $url → $code; len=$contentLength")
                 }
 
                 val fetcher = EpgFetcher.instances.first { it.isSupport(url) }

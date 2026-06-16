@@ -49,6 +49,7 @@ fun LeanbackClassicPanelIptvGroupList(
     initialIptvGroupProvider: () -> IptvGroup = { IptvGroup() },
     exitFocusRequesterProvider: () -> FocusRequester = { FocusRequester.Default },
     onIptvGroupFocused: (IptvGroup) -> Unit = {},
+    onIptvGroupLongSelected: (IptvGroup) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val iptvGroupList = iptvGroupListProvider()
@@ -96,6 +97,7 @@ fun LeanbackClassicPanelIptvGroupList(
                     focusedIptvGroup = it
                     onIptvGroupFocused(it)
                 },
+                onLongSelected = { onIptvGroupLongSelected(iptvGroup) },
             )
         }
     }
@@ -108,6 +110,7 @@ private fun LeanbackClassicPanelIptvGroupItem(
     isSelectedProvider: () -> Boolean = { false },
     initialFocusedProvider: () -> Boolean = { false },
     onFocused: (IptvGroup) -> Unit = {},
+    onLongSelected: () -> Unit = {},
 ) {
     val iptvGroup = iptvGroupProvider()
     val isSelected = isSelectedProvider()
@@ -149,6 +152,7 @@ private fun LeanbackClassicPanelIptvGroupItem(
                 onSelect = {
                     focusRequester.requestFocus()
                 },
+                onLongSelect = onLongSelected,
             )
             .focusable()
             .fillMaxWidth()

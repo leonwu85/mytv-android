@@ -37,7 +37,42 @@ fun LeanbackSettingsCategoryFavorite(
                         !settingsViewModel.iptvChannelFavoriteEnable
                     if (!settingsViewModel.iptvChannelFavoriteEnable) {
                         settingsViewModel.iptvChannelFavoriteListVisible = false
+                        settingsViewModel.iptvChannelFavoritesOnlyMode = false
                     }
+                },
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "只看精选",
+                supportingContent = "仅显示精选分组及其中频道，适合老人儿童",
+                trailingContent = {
+                    Switch(
+                        checked = settingsViewModel.iptvChannelFavoritesOnlyMode,
+                        onCheckedChange = null
+                    )
+                },
+                onSelected = {
+                    settingsViewModel.iptvChannelFavoritesOnlyMode =
+                        !settingsViewModel.iptvChannelFavoritesOnlyMode
+                },
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "精选列表可见",
+                supportingContent = "在频道列表中显示精选分组",
+                trailingContent = {
+                    Switch(
+                        checked = settingsViewModel.iptvChannelFavoriteListVisible,
+                        onCheckedChange = null
+                    )
+                },
+                onSelected = {
+                    settingsViewModel.iptvChannelFavoriteListVisible =
+                        !settingsViewModel.iptvChannelFavoriteListVisible
                 },
             )
         }
@@ -56,6 +91,7 @@ fun LeanbackSettingsCategoryFavorite(
                 supportingContent = "短按立即清空全部收藏",
                 onSelected = {
                     settingsViewModel.iptvChannelFavoriteList = emptySet()
+                    settingsViewModel.iptvChannelFavoritesJson = ""
                     settingsViewModel.iptvChannelFavoriteListVisible = false
                 }
             )

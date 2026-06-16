@@ -50,6 +50,30 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.debugShowVideoPlayerMetadata = value
         }
 
+    private var _debugAppLog by mutableStateOf(SP.debugAppLog)
+    var debugAppLog: Boolean
+        get() = _debugAppLog
+        set(value) {
+            _debugAppLog = value
+            SP.debugAppLog = value
+        }
+
+    private var _playbackTraceLogcatEnabled by mutableStateOf(SP.playbackTraceLogcatEnabled)
+    var playbackTraceLogcatEnabled: Boolean
+        get() = _playbackTraceLogcatEnabled
+        set(value) {
+            _playbackTraceLogcatEnabled = value
+            SP.playbackTraceLogcatEnabled = value
+        }
+
+    private var _httpServerAdvertiseIp by mutableStateOf(SP.httpServerAdvertiseIp)
+    var httpServerAdvertiseIp: String
+        get() = _httpServerAdvertiseIp
+        set(value) {
+            _httpServerAdvertiseIp = value
+            SP.httpServerAdvertiseIp = value
+        }
+
     private var _iptvLastIptvIdx by mutableIntStateOf(SP.iptvLastIptvIdx)
     var iptvLastIptvIdx: Int
         get() = _iptvLastIptvIdx
@@ -114,12 +138,84 @@ class LeanbackSettingsViewModel : ViewModel() {
             SP.iptvSourceUrlHistoryList = value
         }
 
+    private var _iptvSourceRequestHeaders by mutableStateOf(SP.iptvSourceRequestHeaders)
+    var iptvSourceRequestHeaders: String
+        get() = _iptvSourceRequestHeaders
+        set(value) {
+            _iptvSourceRequestHeaders = value
+            SP.iptvSourceRequestHeaders = value
+        }
+
+    private var _iptvChannelRequestHeaders by mutableStateOf(SP.iptvChannelRequestHeaders)
+    var iptvChannelRequestHeaders: String
+        get() = _iptvChannelRequestHeaders
+        set(value) {
+            _iptvChannelRequestHeaders = value
+            SP.iptvChannelRequestHeaders = value
+        }
+
+    private var _iptvSourceEmbeddedEpgUrl by mutableStateOf(SP.iptvSourceEmbeddedEpgUrl)
+    var iptvSourceEmbeddedEpgUrl: String
+        get() = _iptvSourceEmbeddedEpgUrl
+        set(value) {
+            _iptvSourceEmbeddedEpgUrl = value
+            SP.iptvSourceEmbeddedEpgUrl = value
+        }
+
+    private var _iptvSourceEmbeddedEpgPriority by mutableStateOf(SP.iptvSourceEmbeddedEpgPriority)
+    var iptvSourceEmbeddedEpgPriority: Boolean
+        get() = _iptvSourceEmbeddedEpgPriority
+        set(value) {
+            _iptvSourceEmbeddedEpgPriority = value
+            SP.iptvSourceEmbeddedEpgPriority = value
+        }
+
+    private var _iptvHiddenGroupNames by mutableStateOf(SP.iptvHiddenGroupNames)
+    var iptvHiddenGroupNames: Set<String>
+        get() = _iptvHiddenGroupNames
+        set(value) {
+            _iptvHiddenGroupNames = value
+            SP.iptvHiddenGroupNames = value
+        }
+
     private var _iptvChannelFavoriteEnable by mutableStateOf(SP.iptvChannelFavoriteEnable)
     var iptvChannelFavoriteEnable: Boolean
         get() = _iptvChannelFavoriteEnable
         set(value) {
             _iptvChannelFavoriteEnable = value
             SP.iptvChannelFavoriteEnable = value
+        }
+
+    private var _iptvChannelFavoritesOnlyMode by mutableStateOf(SP.iptvChannelFavoritesOnlyMode)
+    var iptvChannelFavoritesOnlyMode: Boolean
+        get() = _iptvChannelFavoritesOnlyMode
+        set(value) {
+            _iptvChannelFavoritesOnlyMode = value
+            SP.iptvChannelFavoritesOnlyMode = value
+        }
+
+    private var _iptvExpandedChannelEnable by mutableStateOf(SP.iptvExpandedChannelEnable)
+    var iptvExpandedChannelEnable: Boolean
+        get() = _iptvExpandedChannelEnable
+        set(value) {
+            _iptvExpandedChannelEnable = value
+            SP.iptvExpandedChannelEnable = value
+        }
+
+    private var _iptvExpandedChannelBucketsJson by mutableStateOf(SP.iptvExpandedChannelBucketsJson)
+    var iptvExpandedChannelBucketsJson: String
+        get() = _iptvExpandedChannelBucketsJson
+        set(value) {
+            _iptvExpandedChannelBucketsJson = value
+            SP.iptvExpandedChannelBucketsJson = value
+        }
+
+    private var _iptvChannelFavoritesJson by mutableStateOf(SP.iptvChannelFavoritesJson)
+    var iptvChannelFavoritesJson: String
+        get() = _iptvChannelFavoritesJson
+        set(value) {
+            _iptvChannelFavoritesJson = value
+            SP.iptvChannelFavoritesJson = value
         }
 
     private var _iptvChannelFavoriteListVisible by mutableStateOf(SP.iptvChannelFavoriteListVisible)
@@ -152,6 +248,14 @@ class LeanbackSettingsViewModel : ViewModel() {
         set(value) {
             _epgXmlUrl = value
             SP.epgXmlUrl = value
+        }
+
+    private var _epgXmlRequestHeaders by mutableStateOf(SP.epgXmlRequestHeaders)
+    var epgXmlRequestHeaders: String
+        get() = _epgXmlRequestHeaders
+        set(value) {
+            _epgXmlRequestHeaders = value
+            SP.epgXmlRequestHeaders = value
         }
 
     private var _epgRefreshTimeThreshold by mutableIntStateOf(SP.epgRefreshTimeThreshold)
@@ -264,5 +368,37 @@ class LeanbackSettingsViewModel : ViewModel() {
         set(value) {
             _videoPlayerSegmentDiskCacheEnable = value
             SP.videoPlayerSegmentDiskCacheEnable = value
+        }
+
+    private var _videoRtspForceTcp by mutableStateOf(SP.videoRtspForceTcp)
+    var videoRtspForceTcp: Boolean
+        get() = _videoRtspForceTcp
+        set(value) {
+            _videoRtspForceTcp = value
+            SP.videoRtspForceTcp = value
+        }
+
+    private var _videoRtspRtpSilenceTimeoutMs by mutableLongStateOf(SP.videoRtspRtpSilenceTimeoutMs)
+    var videoRtspRtpSilenceTimeoutMs: Long
+        get() = _videoRtspRtpSilenceTimeoutMs
+        set(value) {
+            _videoRtspRtpSilenceTimeoutMs = value
+            SP.videoRtspRtpSilenceTimeoutMs = value
+        }
+
+    private var _videoRtspTcpPrepareRetryCount by mutableIntStateOf(SP.videoRtspTcpPrepareRetryCount)
+    var videoRtspTcpPrepareRetryCount: Int
+        get() = _videoRtspTcpPrepareRetryCount
+        set(value) {
+            _videoRtspTcpPrepareRetryCount = value
+            SP.videoRtspTcpPrepareRetryCount = value
+        }
+
+    private var _videoRtspPrepareRetryDelayMs by mutableLongStateOf(SP.videoRtspPrepareRetryDelayMs)
+    var videoRtspPrepareRetryDelayMs: Long
+        get() = _videoRtspPrepareRetryDelayMs
+        set(value) {
+            _videoRtspPrepareRetryDelayMs = value
+            SP.videoRtspPrepareRetryDelayMs = value
         }
 }

@@ -2,14 +2,17 @@ package top.yogiczy.mytv.ui.screens.leanback.settings.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.items
 import kotlinx.collections.immutable.persistentListOf
+import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
 import top.yogiczy.mytv.utils.Logger
 import java.text.SimpleDateFormat
@@ -19,6 +22,7 @@ import java.util.Locale
 fun LeanbackSettingsCategoryLog(
     modifier: Modifier = Modifier,
     history: List<Logger.HistoryItem> = emptyList(),
+    settingsViewModel: LeanbackSettingsViewModel = viewModel(),
 ) {
     val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
     val historySorted = remember(history) {
@@ -30,6 +34,53 @@ fun LeanbackSettingsCategoryLog(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         contentPadding = PaddingValues(vertical = 10.dp),
     ) {
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "显示 FPS",
+                supportingContent = "在屏幕左上角显示 fps 和柱状图",
+                trailingContent = {
+                    Switch(checked = settingsViewModel.debugShowFps, onCheckedChange = null)
+                },
+                onSelected = {
+                    settingsViewModel.debugShowFps = !settingsViewModel.debugShowFps
+                },
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "播放链路诊断日志",
+                supportingContent = "Logcat 标签 PlaybackTrace（不写完整频道 URL）；配合“网络→应用调试日志”可写入本机日志页",
+                trailingContent = {
+                    Switch(
+                        checked = settingsViewModel.playbackTraceLogcatEnabled,
+                        onCheckedChange = null
+                    )
+                },
+                onSelected = {
+                    settingsViewModel.playbackTraceLogcatEnabled =
+                        !settingsViewModel.playbackTraceLogcatEnabled
+                },
+            )
+        }
+
+        item {
+            LeanbackSettingsCategoryListItem(
+                headlineContent = "显示播放器信息",
+                supportingContent = "显示播放器详细信息（编码、解码器、采样率等）",
+                trailingContent = {
+                    Switch(
+                        checked = settingsViewModel.debugShowVideoPlayerMetadata,
+                        onCheckedChange = null
+                    )
+                },
+                onSelected = {
+                    settingsViewModel.debugShowVideoPlayerMetadata =
+                        !settingsViewModel.debugShowVideoPlayerMetadata
+                },
+            )
+        }
+
         items(historySorted) {
             LeanbackSettingsCategoryListItem(
                 headlineContent = "${it.level.toString()[0]} ${it.tag}",

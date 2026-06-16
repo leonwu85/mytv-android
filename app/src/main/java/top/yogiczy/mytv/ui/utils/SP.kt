@@ -38,6 +38,15 @@ object SP {
         /** 播放器详细信息 */
         DEBUG_SHOW_VIDEO_PLAYER_METADATA,
 
+        /** 应用调试日志（记录HTTP请求地址/请求头/响应状态到本机日志页） */
+        DEBUG_APP_LOG,
+
+        /** 播放链路诊断日志（logcat 标签 PlaybackTrace） */
+        PLAYBACK_TRACE_LOGCAT_ENABLED,
+
+        /** 配置服务器广播 IP */
+        HTTP_SERVER_ADVERTISE_IP,
+
         /** ==================== 直播源 ==================== */
         /** 上一次直播源序号 */
         IPTV_LAST_IPTV_IDX,
@@ -63,8 +72,26 @@ object SP {
         /** 是否启用数字选台 */
         IPTV_CHANNEL_NO_SELECT_ENABLE,
 
+        /** 拉取订阅请求头（User-Agent 等） */
+        IPTV_SOURCE_REQUEST_HEADERS,
+
+        /** 播放频道请求头（User-Agent 等） */
+        IPTV_CHANNEL_REQUEST_HEADERS,
+
+        /** m3u 内嵌 EPG 地址 */
+        IPTV_SOURCE_EMBEDDED_EPG_URL,
+
+        /** 直播源内置 EPG 优先 */
+        IPTV_SOURCE_EMBEDDED_EPG_PRIORITY,
+
+        /** 已隐藏分组名 */
+        IPTV_HIDDEN_GROUP_NAMES,
+
         /** 是否启用直播源频道收藏 */
         IPTV_CHANNEL_FAVORITE_ENABLE,
+
+        /** 只看精选 */
+        IPTV_CHANNEL_FAVORITES_ONLY_MODE,
 
         /** 显示直播源频道收藏列表 */
         IPTV_CHANNEL_FAVORITE_LIST_VISIBLE,
@@ -72,12 +99,24 @@ object SP {
         /** 直播源频道收藏列表 */
         IPTV_CHANNEL_FAVORITE_LIST,
 
+        /** 扩展频道 JSON（按直播源分桶） */
+        IPTV_CHANNEL_FAVORITES_JSON,
+
+        /** 启用扩展频道 */
+        IPTV_EXPANDED_CHANNEL_ENABLE,
+
+        /** 扩展频道配置 JSON */
+        IPTV_EXPANDED_CHANNEL_BUCKETS_JSON,
+
         /** ==================== 节目单 ==================== */
         /** 启用节目单 */
         EPG_ENABLE,
 
         /** 节目单 xml url */
         EPG_XML_URL,
+
+        /** 节目单请求头（User-Agent 等） */
+        EPG_XML_REQUEST_HEADERS,
 
         /** 节目单刷新时间阈值（小时） */
         EPG_REFRESH_TIME_THRESHOLD,
@@ -123,6 +162,18 @@ object SP {
 
         /** 播放器 启用分片磁盘缓存 */
         VIDEO_PLAYER_SEGMENT_DISK_CACHE_ENABLE,
+
+        /** 播放器 RTSP 优先 TCP（Interleaved） */
+        VIDEO_RTSP_FORCE_TCP,
+
+        /** 播放器 RTSP 收流静默超时（毫秒） */
+        VIDEO_RTSP_RTP_SILENCE_TIMEOUT_MS,
+
+        /** 播放器 RTSP TCP 起播重试次数 */
+        VIDEO_RTSP_TCP_PREPARE_RETRY_COUNT,
+
+        /** 播放器 RTSP 起播重试间隔（毫秒） */
+        VIDEO_RTSP_PREPARE_RETRY_DELAY_MS,
     }
 
     /** ==================== 应用 ==================== */
@@ -151,6 +202,21 @@ object SP {
     var debugShowVideoPlayerMetadata: Boolean
         get() = sp.getBoolean(KEY.DEBUG_SHOW_VIDEO_PLAYER_METADATA.name, false)
         set(value) = sp.edit().putBoolean(KEY.DEBUG_SHOW_VIDEO_PLAYER_METADATA.name, value).apply()
+
+    /** 应用调试日志（记录 HTTP 请求地址/请求头/响应状态到本机日志页） */
+    var debugAppLog: Boolean
+        get() = sp.getBoolean(KEY.DEBUG_APP_LOG.name, false)
+        set(value) = sp.edit().putBoolean(KEY.DEBUG_APP_LOG.name, value).apply()
+
+    /** 播放链路诊断日志（logcat 标签 PlaybackTrace） */
+    var playbackTraceLogcatEnabled: Boolean
+        get() = sp.getBoolean(KEY.PLAYBACK_TRACE_LOGCAT_ENABLED.name, true)
+        set(value) = sp.edit().putBoolean(KEY.PLAYBACK_TRACE_LOGCAT_ENABLED.name, value).apply()
+
+    /** 配置服务器广播 IP（空则自动获取本机 IP） */
+    var httpServerAdvertiseIp: String
+        get() = sp.getString(KEY.HTTP_SERVER_ADVERTISE_IP.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.HTTP_SERVER_ADVERTISE_IP.name, value).apply()
 
     /** ==================== 直播源 ==================== */
     /** 上一次直播源序号 */
@@ -201,10 +267,40 @@ object SP {
         get() = sp.getBoolean(KEY.IPTV_CHANNEL_NO_SELECT_ENABLE.name, true)
         set(value) = sp.edit().putBoolean(KEY.IPTV_CHANNEL_NO_SELECT_ENABLE.name, value).apply()
 
+    /** 拉取订阅请求头（User-Agent 等） */
+    var iptvSourceRequestHeaders: String
+        get() = sp.getString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.IPTV_SOURCE_REQUEST_HEADERS.name, value).apply()
+
+    /** 播放频道请求头（User-Agent 等） */
+    var iptvChannelRequestHeaders: String
+        get() = sp.getString(KEY.IPTV_CHANNEL_REQUEST_HEADERS.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.IPTV_CHANNEL_REQUEST_HEADERS.name, value).apply()
+
+    /** m3u 内嵌 EPG 地址 */
+    var iptvSourceEmbeddedEpgUrl: String
+        get() = sp.getString(KEY.IPTV_SOURCE_EMBEDDED_EPG_URL.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.IPTV_SOURCE_EMBEDDED_EPG_URL.name, value).apply()
+
+    /** 直播源内置 EPG 优先 */
+    var iptvSourceEmbeddedEpgPriority: Boolean
+        get() = sp.getBoolean(KEY.IPTV_SOURCE_EMBEDDED_EPG_PRIORITY.name, false)
+        set(value) = sp.edit().putBoolean(KEY.IPTV_SOURCE_EMBEDDED_EPG_PRIORITY.name, value).apply()
+
+    /** 已隐藏分组名 */
+    var iptvHiddenGroupNames: Set<String>
+        get() = sp.getStringSet(KEY.IPTV_HIDDEN_GROUP_NAMES.name, emptySet()) ?: emptySet()
+        set(value) = sp.edit().putStringSet(KEY.IPTV_HIDDEN_GROUP_NAMES.name, value).apply()
+
     /** 是否启用直播源频道收藏 */
     var iptvChannelFavoriteEnable: Boolean
         get() = sp.getBoolean(KEY.IPTV_CHANNEL_FAVORITE_ENABLE.name, true)
         set(value) = sp.edit().putBoolean(KEY.IPTV_CHANNEL_FAVORITE_ENABLE.name, value).apply()
+
+    /** 只看精选 */
+    var iptvChannelFavoritesOnlyMode: Boolean
+        get() = sp.getBoolean(KEY.IPTV_CHANNEL_FAVORITES_ONLY_MODE.name, false)
+        set(value) = sp.edit().putBoolean(KEY.IPTV_CHANNEL_FAVORITES_ONLY_MODE.name, value).apply()
 
     /** 显示直播源频道收藏列表 */
     var iptvChannelFavoriteListVisible: Boolean
@@ -217,6 +313,21 @@ object SP {
         get() = sp.getStringSet(KEY.IPTV_CHANNEL_FAVORITE_LIST.name, emptySet()) ?: emptySet()
         set(value) = sp.edit().putStringSet(KEY.IPTV_CHANNEL_FAVORITE_LIST.name, value).apply()
 
+    /** 精选频道数据 JSON（含地址与请求头） */
+    var iptvChannelFavoritesJson: String
+        get() = sp.getString(KEY.IPTV_CHANNEL_FAVORITES_JSON.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.IPTV_CHANNEL_FAVORITES_JSON.name, value).apply()
+
+    /** 启用扩展频道 */
+    var iptvExpandedChannelEnable: Boolean
+        get() = sp.getBoolean(KEY.IPTV_EXPANDED_CHANNEL_ENABLE.name, false)
+        set(value) = sp.edit().putBoolean(KEY.IPTV_EXPANDED_CHANNEL_ENABLE.name, value).apply()
+
+    /** 扩展频道配置 JSON */
+    var iptvExpandedChannelBucketsJson: String
+        get() = sp.getString(KEY.IPTV_EXPANDED_CHANNEL_BUCKETS_JSON.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.IPTV_EXPANDED_CHANNEL_BUCKETS_JSON.name, value).apply()
+
     /** ==================== 节目单 ==================== */
     /** 启用节目单 */
     var epgEnable: Boolean
@@ -227,6 +338,11 @@ object SP {
     var epgXmlUrl: String
         get() = (sp.getString(KEY.EPG_XML_URL.name, "") ?: "").ifBlank { Constants.EPG_XML_URL }
         set(value) = sp.edit().putString(KEY.EPG_XML_URL.name, value).apply()
+
+    /** 节目单请求头（User-Agent 等） */
+    var epgXmlRequestHeaders: String
+        get() = sp.getString(KEY.EPG_XML_REQUEST_HEADERS.name, "") ?: ""
+        set(value) = sp.edit().putString(KEY.EPG_XML_REQUEST_HEADERS.name, value).apply()
 
     /** 节目单刷新时间阈值（小时） */
     var epgRefreshTimeThreshold: Int
@@ -310,6 +426,26 @@ object SP {
         )
         set(value) = sp.edit()
             .putBoolean(KEY.VIDEO_PLAYER_SEGMENT_DISK_CACHE_ENABLE.name, value).apply()
+
+    /** 播放器 RTSP 优先 TCP（Interleaved） */
+    var videoRtspForceTcp: Boolean
+        get() = sp.getBoolean(KEY.VIDEO_RTSP_FORCE_TCP.name, true)
+        set(value) = sp.edit().putBoolean(KEY.VIDEO_RTSP_FORCE_TCP.name, value).apply()
+
+    /** 播放器 RTSP 收流静默超时（毫秒） */
+    var videoRtspRtpSilenceTimeoutMs: Long
+        get() = sp.getLong(KEY.VIDEO_RTSP_RTP_SILENCE_TIMEOUT_MS.name, 28000L)
+        set(value) = sp.edit().putLong(KEY.VIDEO_RTSP_RTP_SILENCE_TIMEOUT_MS.name, value).apply()
+
+    /** 播放器 RTSP TCP 起播重试次数 */
+    var videoRtspTcpPrepareRetryCount: Int
+        get() = sp.getInt(KEY.VIDEO_RTSP_TCP_PREPARE_RETRY_COUNT.name, 2)
+        set(value) = sp.edit().putInt(KEY.VIDEO_RTSP_TCP_PREPARE_RETRY_COUNT.name, value).apply()
+
+    /** 播放器 RTSP 起播重试间隔（毫秒） */
+    var videoRtspPrepareRetryDelayMs: Long
+        get() = sp.getLong(KEY.VIDEO_RTSP_PREPARE_RETRY_DELAY_MS.name, 1200L)
+        set(value) = sp.edit().putLong(KEY.VIDEO_RTSP_PREPARE_RETRY_DELAY_MS.name, value).apply()
 
     enum class UiTimeShowMode(val value: Int) {
         /** 隐藏 */

@@ -11,6 +11,16 @@ class M3uIptvParser : IptvParser {
         return data.startsWith("#EXTM3U")
     }
 
+    /**
+     * 从 #EXTM3U 头中提取内嵌 EPG 地址（x-tvg-url / url-tvg）。
+     */
+    override fun extractEmbeddedEpgUrl(data: String): String? {
+        // 只看首行（#EXTM3U 头）
+        val header = data.lineSequence().firstOrNull { it.startsWith("#EXTM3U") } ?: return null
+        val regex = Regex("""(?:x-tvg-url|url-tvg)\s*=\s*"?([^"\s,]+)"?""", RegexOption.IGNORE_CASE)
+        return regex.find(header)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() }
+    }
+
     override suspend fun parse(data: String): IptvGroupList {
         val lines = data.split("\r\n", "\n")
         val iptvList = mutableListOf<IptvResponseItem>()

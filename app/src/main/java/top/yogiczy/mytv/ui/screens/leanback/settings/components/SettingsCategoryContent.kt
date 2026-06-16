@@ -24,20 +24,18 @@ fun LeanbackSettingsCategoryContent(
         Text(text = focusedCategory.title, style = MaterialTheme.typography.headlineSmall)
 
         when (focusedCategory) {
-            LeanbackSettingsCategories.ABOUT -> LeanbackSettingsCategoryAbout()
             LeanbackSettingsCategories.APP -> LeanbackSettingsCategoryApp()
             LeanbackSettingsCategories.IPTV -> LeanbackSettingsCategoryIptv()
             LeanbackSettingsCategories.EPG -> LeanbackSettingsCategoryEpg()
             LeanbackSettingsCategories.UI -> LeanbackSettingsCategoryUI()
             LeanbackSettingsCategories.FAVORITE -> LeanbackSettingsCategoryFavorite()
-            LeanbackSettingsCategories.UPDATE -> LeanbackSettingsCategoryUpdate()
+            LeanbackSettingsCategories.MERGE -> LeanbackSettingsCategoryMerge()
             LeanbackSettingsCategories.VIDEO_PLAYER -> LeanbackSettingsCategoryVideoPlayer()
-            LeanbackSettingsCategories.HTTP -> LeanbackSettingsCategoryHttp()
-            LeanbackSettingsCategories.DEBUG -> LeanbackSettingsCategoryDebug()
+            LeanbackSettingsCategories.NETWORK -> LeanbackSettingsCategoryNetwork()
             LeanbackSettingsCategories.LOG -> LeanbackSettingsCategoryLog(
                 history = Logger.history,
             )
-            LeanbackSettingsCategories.MORE -> LeanbackSettingsCategoryMore()
+            LeanbackSettingsCategories.ABOUT -> LeanbackSettingsCategoryAbout()
         }
     }
 }

@@ -14,8 +14,12 @@ import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
 import top.yogiczy.mytv.data.entities.EpgList
+import top.yogiczy.mytv.data.entities.ExpandedChannelBuckets
+import top.yogiczy.mytv.data.entities.Iptv
+import top.yogiczy.mytv.data.entities.IptvGroup
 import top.yogiczy.mytv.data.entities.IptvGroupList
 import top.yogiczy.mytv.data.entities.IptvGroupList.Companion.iptvList
+import top.yogiczy.mytv.data.entities.IptvList
 import top.yogiczy.mytv.data.repositories.epg.EpgRepository
 import top.yogiczy.mytv.data.repositories.iptv.IptvRepository
 import top.yogiczy.mytv.data.utils.Constants
@@ -35,10 +39,24 @@ class LeanbackMainViewModel : ViewModel() {
         }
     }
 
+    /**
+     * 重新加载直播源与节目单。用于在设置页配置/修改直播源后触发刷新。
+     */
+    fun reload() {
+        viewModelScope.launch {
+            _uiState.value = LeanbackMainUiState.Loading()
+            refreshIptv()
+            refreshEpg()
+        }
+    }
+
     private suspend fun refreshIptv() {
         val sourceUrl = SP.iptvSourceUrl
         if (sourceUrl.isBlank()) {
-            _uiState.value = LeanbackMainUiState.Error("未配置直播源，请扫码打开配置页面设置自定义直播源")
+            _uiState.value = LeanbackMainUiState.Error(
+                message = "未配置直播源，请在设置中配置自定义直播源",
+                isSourceNotConfigured = true,
+            )
             return
         }
 
@@ -64,9 +82,25 @@ class LeanbackMainViewModel : ViewModel() {
                 SP.iptvSourceUrlHistoryList -= sourceUrl
             }
             .map {
-                _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = it)
+                // 扩展频道：开启时，将各直播源的精选频道固化到一个“扩展频道”分组
+                val finalGroupList = if (SP.iptvExpandedChannelEnable) {
+                    val buckets = ExpandedChannelBuckets.fromJson(SP.iptvExpandedChannelBucketsJson)
+                    val expandedIptvList = buckets.flatMap { bucket ->
+                        bucket.channels.map { ch ->
+                            Iptv(
+                                name = ch.name,
+                                channelName = ch.channelName,
+                                urlList = ch.urlList,
+                            )
+                        }
+                    }
+                    if (expandedIptvList.isEmpty()) it
+                    else IptvGroupList(it + IptvGroup(name = "扩展频道", iptvList = IptvList(expandedIptvList)))
+                } else it
+
+                _uiState.value = LeanbackMainUiState.Ready(iptvGroupList = finalGroupList)
                 SP.iptvSourceUrlHistoryList += sourceUrl
-                it
+                finalGroupList
             }
             .collect()
     }
@@ -75,10 +109,15 @@ class LeanbackMainViewModel : ViewModel() {
         if (_uiState.value is LeanbackMainUiState.Ready) {
             val iptvGroupList = (_uiState.value as LeanbackMainUiState.Ready).iptvGroupList
 
+            // 直播源内置 EPG 优先：开启且解析到内嵌 EPG 时，优先使用内嵌地址
+            val effectiveXmlUrl = if (SP.iptvSourceEmbeddedEpgPriority &&
+                SP.iptvSourceEmbeddedEpgUrl.isNotBlank()
+            ) SP.iptvSourceEmbeddedEpgUrl else SP.epgXmlUrl
+
             flow {
                 emit(
                     epgRepository.getEpgList(
-                        xmlUrl = SP.epgXmlUrl,
+                        xmlUrl = effectiveXmlUrl,
                         filteredChannels = iptvGroupList.iptvList.map { it.channelName },
                         refreshTimeThreshold = SP.epgRefreshTimeThreshold,
                     )
@@ -87,12 +126,12 @@ class LeanbackMainViewModel : ViewModel() {
                 .retry(Constants.HTTP_RETRY_COUNT) { delay(Constants.HTTP_RETRY_INTERVAL); true }
                 .catch {
                     emit(EpgList())
-                    SP.epgXmlUrlHistoryList -= SP.epgXmlUrl
+                    SP.epgXmlUrlHistoryList -= effectiveXmlUrl
                 }
                 .map { epgList ->
                     _uiState.value =
                         (_uiState.value as LeanbackMainUiState.Ready).copy(epgList = epgList)
-                    SP.epgXmlUrlHistoryList += SP.epgXmlUrl
+                    SP.epgXmlUrlHistoryList += effectiveXmlUrl
                 }
                 .collect()
         }
@@ -101,7 +140,11 @@ class LeanbackMainViewModel : ViewModel() {
 
 sealed interface LeanbackMainUiState {
     data class Loading(val message: String? = null) : LeanbackMainUiState
-    data class Error(val message: String? = null) : LeanbackMainUiState
+    data class Error(
+        val message: String? = null,
+        /** 直播源未配置：用于触发自动跳转设置页 */
+        val isSourceNotConfigured: Boolean = false,
+    ) : LeanbackMainUiState
     data class Ready(
         val iptvGroupList: IptvGroupList = IptvGroupList(),
         val epgList: EpgList = EpgList(),

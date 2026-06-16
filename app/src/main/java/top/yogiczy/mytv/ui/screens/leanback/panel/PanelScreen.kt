@@ -60,6 +60,7 @@ fun LeanbackPanelScreen(
     onIptvFavoriteListVisibleChange: (Boolean) -> Unit = {},
     onIptvSelected: (Iptv) -> Unit = {},
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
+    onGroupHidden: (String) -> Unit = {},
     onClose: () -> Unit = {},
     autoCloseState: PanelAutoCloseState = rememberPanelAutoCloseState(
         timeout = Constants.UI_SCREEN_AUTO_CLOSE_DELAY,
@@ -96,6 +97,7 @@ fun LeanbackPanelScreen(
             onIptvFavoriteListVisibleChange = onIptvFavoriteListVisibleChange,
             onIptvSelected = onIptvSelected,
             onIptvFavoriteToggle = onIptvFavoriteToggle,
+            onGroupHidden = onGroupHidden,
             onUserAction = { autoCloseState.active() },
         )
     }
@@ -148,6 +150,7 @@ private fun LeanbackPanelScreenBottom(
     onIptvFavoriteListVisibleChange: (Boolean) -> Unit = {},
     onIptvSelected: (Iptv) -> Unit = {},
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
+    onGroupHidden: (String) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val childPadding = rememberLeanbackChildPadding()
@@ -183,6 +186,7 @@ private fun LeanbackPanelScreenBottom(
                 onIptvFavoriteListVisibleChange = onIptvFavoriteListVisibleChange,
                 onIptvSelected = onIptvSelected,
                 onIptvFavoriteToggle = onIptvFavoriteToggle,
+                onGroupHidden = onGroupHidden,
                 onUserAction = onUserAction,
             )
         }
@@ -202,6 +206,7 @@ fun LeanbackPanelScreenBottomIptvList(
     onIptvFavoriteListVisibleChange: (Boolean) -> Unit = {},
     onIptvSelected: (Iptv) -> Unit = {},
     onIptvFavoriteToggle: (Iptv) -> Unit = {},
+    onGroupHidden: (String) -> Unit = {},
     onUserAction: () -> Unit = {},
 ) {
     val iptvFavoriteEnable = iptvFavoriteEnableProvider()
@@ -233,6 +238,7 @@ fun LeanbackPanelScreenBottomIptvList(
                 showProgrammeProgressProvider = showProgrammeProgressProvider,
                 onIptvSelected = onIptvSelected,
                 onIptvFavoriteToggle = onIptvFavoriteToggle,
+                onGroupHidden = onGroupHidden,
                 onToFavorite = {
                     if (!iptvFavoriteEnable) return@LeanbackPanelIptvGroupList
 

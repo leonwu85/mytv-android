@@ -16,6 +16,12 @@ interface IptvParser {
      */
     suspend fun parse(data: String): IptvGroupList
 
+    /**
+     * 从直播源数据中提取内嵌 EPG 地址（如 m3u 头中的 x-tvg-url / url-tvg）。
+     * 默认不支持，返回 null。
+     */
+    fun extractEmbeddedEpgUrl(data: String): String? = null
+
     companion object {
         val instances = listOf(
             M3uIptvParser(),

@@ -42,6 +42,10 @@ class LeanbackMedia3VideoPlayer(
         DefaultRenderersFactory(context).setExtensionRendererMode(EXTENSION_RENDERER_MODE_ON)
     ).setLoadControl(buildLoadControl()).build().apply {
         playWhenReady = true
+        // 播放链路诊断日志：用 logcat 标签 PlaybackTrace，不写完整频道 URL
+        if (SP.playbackTraceLogcatEnabled) {
+            addAnalyticsListener(EventLogger("PlaybackTrace"))
+        }
     }
 
     /**
@@ -65,8 +69,10 @@ class LeanbackMedia3VideoPlayer(
 
     @OptIn(UnstableApi::class)
     private fun prepare(uri: Uri, contentType: Int? = null) {
+        // 播放频道 User-Agent：优先用频道请求头，回退到全局播放器 UA
+        val effectiveUserAgent = SP.iptvChannelRequestHeaders.trim().ifBlank { SP.videoPlayerUserAgent }
         val httpFactory = DefaultHttpDataSource.Factory().apply {
-            setUserAgent(SP.videoPlayerUserAgent)
+            setUserAgent(effectiveUserAgent)
             setConnectTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
             setReadTimeoutMs(SP.videoPlayerLoadTimeout.toInt())
             setKeepPostFor302Redirects(true)
@@ -96,7 +102,12 @@ class LeanbackMedia3VideoPlayer(
             }
 
             C.CONTENT_TYPE_RTSP -> {
-                RtspMediaSource.Factory().createMediaSource(mediaItem)
+                // RTSP 优先 TCP（Interleaved）：穿越 NAT/防火墙更稳。
+                // 静默超时/TCP起播重试次数/重试间隔：Media3 1.4.1 的 RtspMediaSource.Factory
+                // 暂未公开对应 API，这里仅在起播配置 TCP 模式；后续错误重试由上层换源逻辑处理。
+                RtspMediaSource.Factory()
+                    .setForceUseRtpTcp(SP.videoRtspForceTcp)
+                    .createMediaSource(mediaItem)
             }
 
             C.CONTENT_TYPE_OTHER -> {
