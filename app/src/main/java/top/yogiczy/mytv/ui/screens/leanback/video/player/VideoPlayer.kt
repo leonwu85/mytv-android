@@ -26,7 +26,7 @@ abstract class LeanbackVideoPlayer(
         clearAllListeners()
     }
 
-    abstract fun prepare(url: String)
+    abstract fun prepare(url: String, userAgent: String = "")
 
     abstract fun play()
 

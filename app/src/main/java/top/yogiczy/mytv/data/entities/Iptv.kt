@@ -26,6 +26,11 @@ data class Iptv(
      * 播放地址
      */
     val urlList: List<String> = emptyList(),
+
+    /**
+     * 播放该频道使用的 User-Agent；为空时使用全局播放配置。
+     */
+    val headers: String = "",
 ) {
     companion object {
         val EXAMPLE = Iptv(

@@ -34,9 +34,9 @@ class LeanbackVideoPlayerState(
     /** 元数据 */
     var metadata by mutableStateOf(LeanbackVideoPlayer.Metadata())
 
-    fun prepare(url: String) {
+    fun prepare(url: String, userAgent: String = "") {
         error = null
-        instance.prepare(url)
+        instance.prepare(url, userAgent)
     }
 
     fun play() {

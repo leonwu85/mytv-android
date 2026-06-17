@@ -92,9 +92,17 @@ class LeanbackMainViewModel : ViewModel() {
                                 channelName = ch.channelName,
                                 logoUrl = ch.logoUrl,
                                 urlList = ch.urlList,
+                                headers = ch.headers.ifBlank { bucket.channelHeaders },
                             )
                         }
-                    }
+                    }.filter { it.urlList.isNotEmpty() }
+                        .distinctBy {
+                            Triple(
+                                it.channelName.ifBlank { it.name }.trim().lowercase(),
+                                it.urlList,
+                                it.headers,
+                            )
+                        }
                     if (expandedIptvList.isEmpty()) it
                     else IptvGroupList(it + IptvGroup(name = "扩展频道", iptvList = IptvList(expandedIptvList)))
                 } else it

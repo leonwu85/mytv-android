@@ -76,7 +76,7 @@ private fun toggleFavorite(
                 channelName = iptv.channelName,
                 logoUrl = iptv.logoUrl,
                 urlList = iptv.urlList,
-                headers = SP.iptvChannelRequestHeaders,
+                headers = iptv.headers.ifBlank { SP.iptvChannelRequestHeaders },
             )
         settingsViewModel.iptvChannelFavoritesJson = FavoriteChannels.toJson(current)
         LeanbackToastState.I.showToast("已收藏: ${iptv.channelName}")

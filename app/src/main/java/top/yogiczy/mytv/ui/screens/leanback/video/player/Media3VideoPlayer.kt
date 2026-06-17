@@ -71,6 +71,7 @@ class LeanbackMedia3VideoPlayer(
     private var ioRetryCount = 0
     private var hlsDirectRetryUsed = false
     private var currentUseSegmentCache = true
+    private var currentUserAgent = ""
 
     /** 加载级错误处理策略：所有 MediaSource 共用，在数据源层吸收瞬时 IO 错误（第1层）。 */
     private val loadErrorHandlingPolicy = IptvLoadErrorHandlingPolicy()
@@ -82,8 +83,8 @@ class LeanbackMedia3VideoPlayer(
         useSegmentCache: Boolean = true,
     ) {
         // 播放频道 User-Agent：优先用频道请求头，回退到全局播放器 UA
-        val effectiveUserAgent = SP.iptvChannelRequestHeaders
-            .trim()
+        val effectiveUserAgent = currentUserAgent
+            .ifBlank { SP.iptvChannelRequestHeaders.trim() }
             .ifBlank { SP.videoPlayerUserAgent }
             .ifBlank { Util.getUserAgent(context, "MyTV") }
         val httpFactory = DefaultHttpDataSource.Factory().apply {
@@ -322,12 +323,13 @@ class LeanbackMedia3VideoPlayer(
     }
 
     @UnstableApi
-    override fun prepare(url: String) {
+    override fun prepare(url: String, userAgent: String) {
         contentTypeAttempts.clear()
         httpStatusRetryCount = 0
         ioRetryCount = 0
         hlsDirectRetryUsed = false
         currentUseSegmentCache = true
+        currentUserAgent = userAgent.trim()
         prepare(Uri.parse(url))
     }
 

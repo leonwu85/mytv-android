@@ -5,24 +5,23 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.foundation.lazy.list.TvLazyColumn
+import top.yogiczy.mytv.data.entities.ExpandedChannel
 import top.yogiczy.mytv.data.entities.ExpandedChannelBucket
 import top.yogiczy.mytv.data.entities.ExpandedChannelBuckets
-import top.yogiczy.mytv.data.entities.FavoriteChannel
 import top.yogiczy.mytv.data.entities.FavoriteChannels
 import top.yogiczy.mytv.ui.screens.leanback.settings.LeanbackSettingsViewModel
 import top.yogiczy.mytv.ui.screens.leanback.toast.LeanbackToastState
 import top.yogiczy.mytv.ui.theme.LeanbackTheme
+import top.yogiczy.mytv.ui.utils.HttpServer
 import top.yogiczy.mytv.ui.utils.SP
+import top.yogiczy.mytv.ui.utils.SettingsUpdate
 
 @Composable
 fun LeanbackSettingsCategoryMerge(
@@ -51,6 +50,7 @@ fun LeanbackSettingsCategoryMerge(
                 onSelected = {
                     settingsViewModel.iptvExpandedChannelEnable =
                         !settingsViewModel.iptvExpandedChannelEnable
+                    HttpServer.notifySettingsUpdate(SettingsUpdate(iptvSourceChanged = true))
                 },
             )
         }
@@ -62,6 +62,7 @@ fun LeanbackSettingsCategoryMerge(
                 trailingContent = "${buckets.size}个源 / ${buckets.sumOf { it.channels.size }}个频道",
                 onSelected = {
                     updateExpandedChannelBuckets(settingsViewModel)
+                    HttpServer.notifySettingsUpdate(SettingsUpdate(iptvSourceChanged = true))
                     LeanbackToastState.I.showToast("更新扩展频道成功")
                 },
             )
@@ -73,6 +74,7 @@ fun LeanbackSettingsCategoryMerge(
                 supportingContent = "删除扩展频道内所有直播源条目",
                 onSelected = {
                     settingsViewModel.iptvExpandedChannelBucketsJson = ""
+                    HttpServer.notifySettingsUpdate(SettingsUpdate(iptvSourceChanged = true))
                     LeanbackToastState.I.showToast("已清空扩展频道")
                 },
             )
@@ -89,24 +91,33 @@ private fun updateExpandedChannelBuckets(settingsViewModel: LeanbackSettingsView
     val sourceHeaders = SP.iptvSourceRequestHeaders
     val channelHeaders = SP.iptvChannelRequestHeaders
     val favorites = FavoriteChannels.fromJson(SP.iptvChannelFavoritesJson)
+    val channels = favorites.map {
+        ExpandedChannel(
+            name = it.name,
+            channelName = it.channelName,
+            logoUrl = it.logoUrl,
+            urlList = it.urlList,
+            headers = it.headers.ifBlank { channelHeaders },
+        )
+    }.filter { it.urlList.isNotEmpty() }
+        .distinctBy {
+            Triple(
+                it.channelName.ifBlank { it.name }.trim().lowercase(),
+                it.urlList,
+                it.headers,
+            )
+        }
 
     val newBucket = ExpandedChannelBucket(
         sourceUrl = sourceUrl,
         sourceHeaders = sourceHeaders,
         channelHeaders = channelHeaders,
-        channels = favorites.map {
-            top.yogiczy.mytv.data.entities.ExpandedChannel(
-                name = it.name,
-                channelName = it.channelName,
-                logoUrl = it.logoUrl,
-                urlList = it.urlList,
-                headers = it.headers,
-            )
-        },
+        channels = channels,
     )
 
     val existing = ExpandedChannelBuckets.fromJson(settingsViewModel.iptvExpandedChannelBucketsJson)
-    val merged = (existing.filter { it.sourceUrl != sourceUrl } + newBucket)
+    val existingOtherSources = existing.filter { it.sourceUrl != sourceUrl }
+    val merged = if (channels.isEmpty()) existingOtherSources else existingOtherSources + newBucket
     settingsViewModel.iptvExpandedChannelBucketsJson =
         ExpandedChannelBuckets.toJson(merged)
 }
@@ -124,7 +135,7 @@ private fun LeanbackSettingsCategoryMergePreview() {
                         ExpandedChannelBucket(
                             sourceUrl = "https://example.com/a.m3u",
                             channels = listOf(
-                                top.yogiczy.mytv.data.entities.ExpandedChannel(
+                                ExpandedChannel(
                                     name = "CCTV-1",
                                 )
                             ),
