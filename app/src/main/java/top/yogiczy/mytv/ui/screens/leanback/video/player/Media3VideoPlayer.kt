@@ -30,6 +30,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import top.yogiczy.mytv.data.utils.Constants
 import top.yogiczy.mytv.ui.utils.SP
 import androidx.media3.common.PlaybackException as Media3PlaybackException
 
@@ -71,6 +72,9 @@ class LeanbackMedia3VideoPlayer(
     private var hlsDirectRetryUsed = false
     private var currentUseSegmentCache = true
 
+    /** 加载级错误处理策略：所有 MediaSource 共用，在数据源层吸收瞬时 IO 错误（第1层）。 */
+    private val loadErrorHandlingPolicy = IptvLoadErrorHandlingPolicy()
+
     @OptIn(UnstableApi::class)
     private fun prepare(
         uri: Uri,
@@ -89,19 +93,22 @@ class LeanbackMedia3VideoPlayer(
             setKeepPostFor302Redirects(true)
             setAllowCrossProtocolRedirects(true)
         }
+        // 上游 DataSource 重试包装：在 HttpDataSource.open 失败时做连接级快速重试，
+        // 在 Media3 察觉到错误前吸收瞬时连接抖动，进一步降低 2000 冒泡频率（第4层）。
+        val retryingHttpFactory = RetryingDataSource.Factory(httpFactory)
 
         // 分片磁盘缓存：开启时用 CacheDataSource 包一层，出错时自动回退到上游直连
         val cacheDataSourceFactory =
             if (SP.videoPlayerSegmentDiskCacheEnable && useSegmentCache) {
                 CacheDataSource.Factory()
                     .setCache(VideoCache.get(context))
-                    .setUpstreamDataSourceFactory(httpFactory)
+                    .setUpstreamDataSourceFactory(retryingHttpFactory)
                     .setFlags(CACHE_FLAGS)
             } else {
                 null
             }
 
-        val directDataSourceFactory = DefaultDataSource.Factory(context, httpFactory)
+        val directDataSourceFactory = DefaultDataSource.Factory(context, retryingHttpFactory)
         val dataSourceFactory = cacheDataSourceFactory
             ?.let { DefaultDataSource.Factory(context, it) }
             ?: directDataSourceFactory
@@ -120,6 +127,11 @@ class LeanbackMedia3VideoPlayer(
                     } ?: HlsDataSourceFactory { directDataSourceFactory.createDataSource() }
                 )
                     .setExtractorFactory(Av3aHlsExtractorFactory())
+                    // 无分片起播：准备阶段不再多下一个分片，收窄 IO 错误面（第2层）。
+                    // 无 CODECS 的源 Media3 会自动回退到普通起播，安全。
+                    .setAllowChunklessPreparation(true)
+                    // 加载级重试策略：在数据源层吸收瞬时 2000，避免过早冒泡为致命错误（第1层）。
+                    .setLoadErrorHandlingPolicy(loadErrorHandlingPolicy)
                     .createMediaSource(mediaItem)
             }
 
@@ -129,11 +141,13 @@ class LeanbackMedia3VideoPlayer(
                 // 暂未公开对应 API，这里仅在起播配置 TCP 模式；后续错误重试由上层换源逻辑处理。
                 RtspMediaSource.Factory()
                     .setForceUseRtpTcp(SP.videoRtspForceTcp)
+                    .setLoadErrorHandlingPolicy(loadErrorHandlingPolicy)
                     .createMediaSource(mediaItem)
             }
 
             C.CONTENT_TYPE_OTHER -> {
                 ProgressiveMediaSource.Factory(dataSourceFactory, Av3aExtractorsFactory())
+                    .setLoadErrorHandlingPolicy(loadErrorHandlingPolicy)
                     .createMediaSource(mediaItem)
             }
 
@@ -349,7 +363,7 @@ class LeanbackMedia3VideoPlayer(
         updatePositionJob?.cancel()
         updatePositionJob = null
         coroutineScope.launch {
-            delay(500)
+            delay(ioRetryDelayMs(retryCount))
             prepare(
                 uri = uri,
                 contentType = currentContentTypeForRetry(uri),
@@ -368,7 +382,7 @@ class LeanbackMedia3VideoPlayer(
         updatePositionJob?.cancel()
         updatePositionJob = null
         coroutineScope.launch {
-            delay(400)
+            delay(ioRetryDelayMs(ioRetryCount))
             prepare(uri, C.CONTENT_TYPE_HLS)
         }
         return true
@@ -396,7 +410,7 @@ class LeanbackMedia3VideoPlayer(
         updatePositionJob?.cancel()
         updatePositionJob = null
         coroutineScope.launch {
-            delay(400)
+            delay(ioRetryDelayMs(ioRetryCount))
             prepare(uri, C.CONTENT_TYPE_HLS, useSegmentCache = false)
         }
         return true
@@ -411,6 +425,20 @@ class LeanbackMedia3VideoPlayer(
         return errorCode == Media3PlaybackException.ERROR_CODE_IO_UNSPECIFIED ||
             errorCode == Media3PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
             errorCode == Media3PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
+    }
+
+    /**
+     * 播放器级 IO 重试退避延迟（第3层）：指数退避 + ±20% 抖动，
+     * 避免对拥塞源集中重打。[attempt] 从 0 起。
+     */
+    private fun ioRetryDelayMs(attempt: Int): Long {
+        val exp = 1L shl attempt.coerceAtMost(10)
+        val backoff = minOf(
+            Constants.PLAYER_IO_RETRY_BACKOFF_BASE_MS * exp,
+            Constants.PLAYER_IO_RETRY_BACKOFF_MAX_MS,
+        )
+        val jitter = (backoff * 0.2 * (kotlin.random.Random.nextDouble() * 2 - 1)).toLong()
+        return (backoff + jitter).coerceAtLeast(0)
     }
 
     private fun Media3PlaybackException.toPlaybackException(): PlaybackException {
